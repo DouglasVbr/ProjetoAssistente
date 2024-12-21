@@ -1,0 +1,104 @@
+:root {
+    --black: black;
+    --primary: #00b7ff;
+    --secundary: deeppink;
+    --success: green;
+    --warning: gold;
+    --danger: red;
+    --with: #ffffff;
+
+}
+
+.bg-black {
+
+    background: var(--black) !important;
+
+}
+
+.page-content {
+    background: var(--black) !important;
+}
+
+.txt-primary {
+    color: var(--primary) !important;
+}
+
+.justify-content-center {
+    justify-content: center !important;
+}
+
+.btn-primary-outline {
+    background: var(--with) !important;
+    border: 3px solid var(--primary) !important;
+    color: var(--primary) !important;
+}
+
+.btn-secondary-outline {
+    background: var(--with) !important;
+    border: 3px solid var(--secundary) !important;
+    color: var(--secundary) !important;
+}
+
+.btn-success-outline {
+    background: var(--with) !important;
+    border: 3px solid var(--success) !important;
+    color: var(--success) !important;
+}
+
+.btn-warning-outline {
+    background: var(--with) !important;
+    border: 3px solid var(--warning) !important;
+    color: var(--warning) !important;
+}
+
+
+
+.btn-danger-outline {
+    background: var(--with) !important;
+    border: 3px solid var(--danger) !important;
+    color: var(--danger) !important;
+}
+
+.border-bottom-primary {
+    border-bottom: 1px solid var(--primary) !important;
+
+}
+
+.input-custom {
+    background: var(--black) !important;
+    color: var(--primary) !important;
+}
+
+.input-custom::placeholder {
+
+    color: var(--primary) !important;
+}
+
+a.txt-primary {
+    color: var(--primary) !important;
+}
+
+li {
+    background: var(--black) !important;
+
+}
+
+.fw-bold{
+
+    font-weight: bolder !important;
+
+}
+
+.list .item-inner {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important; /* Alinha o texto à esquerda */
+}
+
+.fab a {
+    border-radius: 50px !important; /* Deixa o botão mais arredondado */
+    padding: 1px 5px !important; /* Ajusta o espaçamento interno */
+}
+
+
+
