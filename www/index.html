@@ -35,7 +35,7 @@
             
           <!-- fab button -->
           <div class="fab fab-extended fab-center-bottom">
-            <a href="#" class="btn-primary-outline">
+            <a id="btnfalar" href="#" class="btn-primary-outline">
                 <img class="mdi mdi-microphone" src="img/microfone.png" style="border-radius: 50%; padding: 8px;">
                 <div class="fab-text">Falar</div>
             </a>
@@ -48,6 +48,10 @@
             <a href="/memorias/" class="link">
             <img style="max-width: 200px;" src="img/giphy.gif">
           </a>
+          <div class="block">
+            <p id="pergunta" class="display-none"></p>
+          </div>
+
             <div class="block">
             <p id="resposta"></p>
           </div>
@@ -60,23 +64,15 @@
     <script type="text/javascript" src="js/lib/framework7-bundle.js"></script>
     <!-- typed JS-->
     <script type="text/javascript" src="js/lib/typed.umd.js"></script>
+    <!--jQuery 3.7.1-->
+    <script type="text/javascript" src="js/lib/jquery-3.7.1.min.js"></script>
     <!-- Path to your app js-->
     <script type="text/javascript" src="js/router.js"></script>
 
-    <script>
-      var typed = new Typed('#resposta', {
-  strings: ['isso é um teste de texto ^1000', ''],
-  typeSpeed: 40,
-  showCursor:false,
-  onComplete: function(self){
-    toastBottom = app.toast.create({
-          text: 'Fala Concluída Com Sucesso!',
-          closeTimeout: 2000,
-        });
-        toastBottom.open();
-  }
-});
-    </script>
+    <!--Cordova-->
+    <script type="text/javascript" src="cordova.js"></script>
+
+    
 
   </body>
 </html>

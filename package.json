@@ -13,12 +13,18 @@
   "author": "Apache Cordova Team",
   "license": "Apache-2.0",
   "devDependencies": {
-    "cordova-android": "^13.0.0"
+    "cordova-android": "^13.0.0",
+    "cordova-plugin-speechrecognition": "^1.2.0",
+    "cordova-plugin-texttospeech": "^0.1.1"
   },
   "cordova": {
     "platforms": [
       "android"
-    ]
+    ],
+    "plugins": {
+      "cordova-plugin-speechrecognition": {},
+      "cordova-plugin-texttospeech": {}
+    }
   },
   "dependencies": {
     "framework7": "^8.3.4"

@@ -35,7 +35,7 @@
           <div class="navbar-inner">
             <a href="#" class=" back left padding-left txt-primary"><i class="mdi mdi-arrow-left"></i></a>
             <div class="title txt-primary"><i class="mdi mdi-brain"></i>Memórias</div>
-            <div class="right padding-right txt-primary"><i class="mdi mdi-database"></i></div>
+            <a href="#" id="apagarMemorias" class="right padding-right txt-primary"><i class="mdi mdi-database"></i></a>
           </div>
         </div>
 
@@ -88,7 +88,7 @@
                       <div class="item-inner">
                         <div class="item-title item-label txt-primary fw-bold">Titulo da Pergunta</div>
                         <div class="item-input-wrap">
-                          <input class="input-custom border-bottom-primary" type="text">
+                          <input id="perguntaEscrita" class="input-custom border-bottom-primary" type="text">
                           <span class="input-clear-button"></span>
                         </div>
                       </div>
@@ -99,7 +99,7 @@
                       <div class="item-inner">
                         <div class="item-title item-label txt-primary fw-bold">Oque a assistente entendeu </div>
                         <div class="item-input-wrap">
-                          <input class="input-custom border-bottom-primary" type="text">
+                          <input id="perguntaEntendida" class="input-custom border-bottom-primary" type="text">
                           <span class="input-clear-button"></span>
                         </div>
                       </div>
@@ -110,7 +110,7 @@
 
                 <!-- fab button left -->
                 <div class="fab fab-extended fab-left-bottom ">
-                  <a href="#" class="btn-success-outline ">
+                  <a href="#" id="salvarPergunta" class="btn-success-outline ">
                     <i class=" mdi mdi-content-save"></i>
                     <div class="fab-text">Salvar</div>
                   </a>
@@ -118,7 +118,7 @@
 
                 <!-- fab button centralizado -->
                 <div class="fab fab-extended fab-center-bottom ">
-                  <a href="#" class="btn-primary-outline ">
+                  <a href="#" id="gravarPergunta" class="btn-primary-outline ">
 
                     <div class="fab-text"><i class="mdi mdi-microphone"></i></div>
                   </a>
@@ -128,7 +128,7 @@
                 <div class="fab fab-extended fab-right-bottom ">
                   <a href="#" class="btn-danger-outline popup-close ">
                     <i class=" mdi mdi-cancel"></i>
-                    <div class="fab-text">Cancelar</div>
+                    <div class="fab-text">Cancel</div>
                   </a>
                 </div>
 
@@ -157,15 +157,19 @@
                 </div>
               </div>
               <div class="page-content bg-black">
+                <div class="block">
+                  <span id="idDoItem" class="badge padding-left padding-right color-blue"></span>
+                </div>
+                
 
-                <div class="list list-strong-ios list-dividers-ios inset-ios">
+                <div class="list no-hairlines-md">
                   <ul>
                     <li class="item-content item-input">
 
                       <div class="item-inner">
                         <div class="item-title item-label txt-primary fw-bold">Resposta Escrita</div>
                         <div class="item-input-wrap">
-                          <input class="input-custom border-bottom-primary" type="text">
+                          <input id="input_rescrita" class="input-custom border-bottom-primary" type="text">
                           <span class="input-clear-button"></span>
                         </div>
                       </div>
@@ -176,7 +180,7 @@
                       <div class="item-inner">
                         <div class="item-title item-label txt-primary fw-bold">Resposta Falada </div>
                         <div class="item-input-wrap">
-                          <input class="input-custom border-bottom-primary" type="text">
+                          <input id="input_rfalada" class="input-custom border-bottom-primary" type="text">
                           <span class="input-clear-button"></span>
                         </div>
                       </div>
@@ -187,7 +191,7 @@
 
                 <!-- fab button left -->
                 <div class="fab fab-extended fab-left-bottom ">
-                  <a href="#" class="btn-warning-outline ">
+                  <a href="#" id="salvarRespostas"  class="btn-warning-outline ">
                     <i class=" mdi mdi-content-save"></i>
                     <div class="fab-text">Salvar</div>
                   </a>
@@ -195,7 +199,7 @@
 
                 <!-- fab button centralizado -->
                 <div class="fab fab-extended fab-center-bottom ">
-                  <a href="#" class="btn-primary-outline ">
+                  <a href="#" id="BtnFalarResposta"  class="btn-primary-outline ">
 
                     <div class="fab-text"><i class="mdi mdi-bullhorn"></i></div>
                   </a>
@@ -205,7 +209,7 @@
                 <div class="fab fab-extended fab-right-bottom ">
                   <a href="#" class="btn-danger-outline popup-close ">
                     <i class=" mdi mdi-cancel"></i>
-                    <div class="fab-text">Cancelar</div>
+                    <div class="fab-text">Cancel</div>
                   </a>
                 </div>
 
@@ -222,46 +226,19 @@
         <!-- Scrollable page content -->
         <div class="page-content bg-black txt-primary ">
 
-          <div class="block-title txt-primary">Aprendidas (2)</div>
+        <div id="semMemorias" class="display-none" >
+          <div class="block-title txt-primary">Nenhuma memória aprendida até o momento </div>
+        </div>
 
-          <div class="list media-list list-outline-ios list-strong-ios list-dividers-ios searchbar-found">
-            <ul>
-              <li>
-                <a href="#" data-popup=".popup-resposta" class="item-link item-content popup-open">
-                  <div class="item-inner">
-                    <div class="item-title-row">
-                      <div class="item-title fw-bold">
-                        <i class="mdi mdi-pencil"></i>Texto escrito de titulo
-                      </div>
-                      <div class="item-after">
-                        <span class="badge padding-left padding-right color-blue">ID: 1</span>
-                      </div>
-                    </div>
-                    <div class="item-subtitle">
-                      <i class="mdi mdi-microphone"></i>Como a assistente entendeu
-                    </div>
-                  </div>
-                </a>
-              </li>
-              <li>
-                <a class="item-link item-content">
-                  <div class="item-inner">
-                    <div class="item-title-row">
-                      <div class="item-title fw-bold">
-                        <i class="mdi mdi-pencil"></i>Outra coisa qualquer digitada
-                      </div>
-                      <div class="item-after">
-                        <span class="badge padding-left padding-right color-blue">ID: 2</span>
-                      </div>
-                    </div>
-                    <div class="item-subtitle">
-                      <i class="mdi mdi-microphone"></i>Outra coisa qualquer digitada
-                    </div>
-                  </div>
-                </a>
-              </li>
+         <div id="comMemorias" class="display-none">
+          <div class="block-title txt-primary">Aprendidas (<b id="qtAprendidas"></b>)</div>
+          <div class="list media-list">
+            <ul id="listaPerguntas">
+              
+                
             </ul>
           </div>
+        </div>
 
 
 
@@ -270,7 +247,7 @@
       </div>
     </div>
   </div>
-  </div>
+  
   <!-- Path to Framework7 Library Bundle JS-->
   <script type="text/javascript" src="js/lib/framework7-bundle.js"></script>
   <!-- typed JS-->

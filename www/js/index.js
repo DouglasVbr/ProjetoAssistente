@@ -1,29 +1,82 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// assim que a rota index começar
 
-// Wait for the deviceready event before using any of Cordova's device APIs.
-// See https://cordova.apache.org/docs/en/latest/cordova/events/events.html#deviceready
-document.addEventListener('deviceready', onDeviceReady, false);
+//verificar se tem permissao de usar speechrecognition
+window.plugins.speechRecognition.hasPermission(
+    function (permissao) {
+        // se não tiver permissao 
+        if (!permissao) {
 
-function onDeviceReady() {
-    // Cordova is now initialized. Have fun!
+            // soliciatar a permissao
+            window.plugins.speechRecognition.requestPermission(
+                function (temPermissao) {
+                    app.dialog.alert('Permissão concedida:', +temPermissao);
+                }, function (erro) {
+                    app.dialog.alert('Request Permission error:' + erro);
+                })
 
-    console.log('Running cordova-' + cordova.platformId + '@' + cordova.version);
-    document.getElementById('deviceready').classList.add('ready');
-}
+        }
+
+    }, function (error) {
+        app.dialog.alert('hasPermission error:', +error)
+    })
+
+
+
+//clicou no botão falar
+$("#btnfalar").on('click', function () {
+
+    let options = {
+        language: "pt-BR",
+        showPopup: false,
+        showPartial: true
+    }
+
+    // começou a escutar
+    window.plugins.speechRecognition.startListening(
+        //se sucesso
+        function (dados) {
+            $.each(dados, function (index, texto) {
+                //colocar oque ela entende no p chamado pergunta 
+
+                $("#pergunta").html("").append(texto);
+                // pegar o valor do que ela entendeu
+                var pergunta = $("#pergunta").html().toLowerCase();
+                // verificar se o comando é essa
+                if (pergunta == "acessar memórias" || pergunta == "cessar memória") {
+                    app.view.main.router.navigate('/memorias/');
+                }
+
+                if (pergunta == "qual é o seu nome" || pergunta == "qual seu nome") {
+
+                    // or with more options
+                    TTS.speak({
+                        text: 'Meu Nome é Phennellopy',
+                        locale: 'pt-BR',
+                        rate: 0.75
+                     }, function () {
+                        // se ela falar vai escrever na tela a resposta
+                        var typed = new Typed('#resposta', {
+                            strings: ['Meu Nome é Phennellopy ^1000', ''],
+                            typeSpeed: 40,
+                            showCursor:false,
+                            onComplete: function(self){
+                              toastBottom = app.toast.create({
+                                    text: 'Fala Concluída Com Sucesso!',
+                                    closeTimeout: 2000,
+                                  });
+                                  toastBottom.open();
+                            }
+                          });
+
+                    }, function (reason) {
+                        app.dialog.alert('Houve um Erro:'+erro);
+                    });
+                }
+            })
+        },
+        //se erro
+        function (erro) {
+            app.dialog.alert('Houve um erro:' + erro);
+        }, options)
+
+});
