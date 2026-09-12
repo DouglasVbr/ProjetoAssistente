@@ -95,7 +95,16 @@
             var client = getSupabase();
             if (!client) return Promise.reject(new Error('A autenticação ainda não foi configurada no servidor.'));
             var config = global.__PHENNELLOPY_CONFIG__ || {};
-            return client.auth.signInWithOAuth({
+            var settingsUrl = String(config.supabaseUrl || '').replace(/\/$/, '') + '/auth/v1/settings';
+            return fetch(settingsUrl, { headers: { apikey: config.supabaseKey || '' } }).then(function (response) {
+                if (!response.ok) throw new Error('Não foi possível verificar o provedor de autenticação.');
+                return response.json();
+            }).then(function (settings) {
+                var external = settings.external || {};
+                if (external[provider] === false) {
+                    throw new Error('O provedor ' + provider + ' ainda não está habilitado no Supabase.');
+                }
+                return client.auth.signInWithOAuth({
                 provider: provider,
                 options: {
                     redirectTo: config.authRedirectUrl || window.location.origin + window.location.pathname
