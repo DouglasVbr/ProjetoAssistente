@@ -4,11 +4,20 @@
 <head>
   <!-- Required meta tags-->
   <meta charset="utf-8">
-  <meta name="viewport"
-    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <!-- Color theme for statusbar (Android only) -->
   <meta name="theme-color" content="#2196f3">
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+    font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com;
+    media-src *;
+    img-src 'self' data: content: blob:;
+    connect-src 'self' http://10.0.2.2 http://192.168.*.* https://*.anthropic.com https://seu-dominio.com http://localhost:8000;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
+  ">
   <!-- Your app title -->
   <title>phennellopy.ia</title>
   <!-- Path to Framework7 Library Bundle CSS -->
@@ -16,7 +25,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.9.96/css/materialdesignicons.min.css">
 
   <!-- Path to your custom app styles-->
-  <link rel="stylesheet" href="css/index.css">
+  <link rel="stylesheet" href="css/liquid-glass.css">
 </head>
 
 <body>
@@ -255,20 +264,6 @@
   <!-- Path to your app js-->
   <script type="text/javascript" src="js/router.js"></script>
 
-  <script>
-    var typed = new Typed('#resposta', {
-      strings: ['isso é um teste de texto ^1000', ''],
-      typeSpeed: 40,
-      showCursor: false,
-      onComplete: function (self) {
-        toastBottom = app.toast.create({
-          text: 'Fala Concluída Com Sucesso!',
-          closeTimeout: 2000,
-        });
-        toastBottom.open();
-      }
-    });
-  </script>
 
 </body>
 

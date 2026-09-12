@@ -14,16 +14,20 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "cordova-android": "^13.0.0",
+    "cordova-browser": "^7.0.0",
+    "cordova-plugin-inappbrowser": "^7.0.0",
     "cordova-plugin-speechrecognition": "^1.2.0",
     "cordova-plugin-texttospeech": "^0.1.1"
   },
   "cordova": {
     "platforms": [
-      "android"
+      "android",
+      "browser"
     ],
     "plugins": {
       "cordova-plugin-speechrecognition": {},
-      "cordova-plugin-texttospeech": {}
+      "cordova-plugin-texttospeech": {},
+      "cordova-plugin-inappbrowser": {}
     }
   },
   "dependencies": {
