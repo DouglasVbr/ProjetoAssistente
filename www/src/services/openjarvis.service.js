@@ -1,0 +1,1 @@
+(function (global) { var NS = global.Phennellopy = global.Phennellopy || {}; NS.OpenJarvis = { isEnabled: function () { return false; }, ask: function () { return Promise.reject(new Error('OpenJarvis indisponível.')); } }; })(window);

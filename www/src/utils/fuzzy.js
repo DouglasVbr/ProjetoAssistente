@@ -1,0 +1,1 @@
+(function (global) { global.Phennellopy = global.Phennellopy || {}; global.Phennellopy.Fuzzy = { normalize: function (value) { return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } }; })(window);
