@@ -109,9 +109,10 @@
                 options: {
                     redirectTo: config.authRedirectUrl || window.location.origin + window.location.pathname
                 }
-            }).then(function (result) {
-                if (result.error) throw result.error;
-                return result.data;
+                }).then(function (result) {
+                    if (result.error) throw result.error;
+                    return result.data;
+                });
             });
         },
 
