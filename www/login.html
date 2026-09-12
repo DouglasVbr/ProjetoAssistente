@@ -91,9 +91,12 @@
       }
       function friendlyError(error, fallback) {
         var message = error && error.message ? error.message.toLowerCase() : '';
-        if (message.indexOf('provider') >= 0 || message.indexOf('not enabled') >= 0) return 'Este método de login ainda não está habilitado no servidor.';
+        if (message.indexOf('operation-not-allowed') >= 0 || message.indexOf('provider') >= 0 || message.indexOf('not enabled') >= 0) return 'Ative o provedor Google em Firebase Console → Authentication → Sign-in method → Google.';
+        if (message.indexOf('popup-blocked') >= 0 || message.indexOf('popup-closed') >= 0) return 'A janela do Google foi bloqueada ou fechada. Permita pop-ups para este site e tente novamente.';
+        if (message.indexOf('unauthorized-domain') >= 0) return 'Este domínio ainda não está autorizado no Firebase. Adicione o domínio do preview em Authentication → Settings → Authorized domains.';
         if (message.indexOf('rate') >= 0) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
         if (message.indexOf('fetch') >= 0 || message.indexOf('network') >= 0) return 'Não foi possível conectar ao serviço de autenticação. Verifique sua internet e tente novamente.';
+        if (error && error.code) return 'Falha no Firebase (' + error.code + '). Confira o provedor Google e os domínios autorizados no Firebase Console.';
         return fallback;
       }
       function setButtonBusy(button, busy) {

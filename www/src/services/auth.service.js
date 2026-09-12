@@ -27,23 +27,6 @@
         return firebaseAuth;
     }
 
-    function getFirebaseAuth() {
-        if (firebaseAuth) return firebaseAuth;
-        if (!global.firebase) return null;
-        var firebaseConfig = {
-            apiKey: 'AIzaSyAzimiz9Ja_ph5NiFImABHRKVoqK_1BksVU',
-            authDomain: 'penelopy-4105f.firebaseapp.com',
-            projectId: 'penelopy-4105f',
-            storageBucket: 'penelopy-4105f.firebasestorage.app',
-            messagingSenderId: '605405457753',
-            appId: '1:605405457753:web:c3fc4f80b5a02eb9173048',
-            measurementId: 'G-J2GZ6EMD3C'
-        };
-        var app = global.firebase.apps && global.firebase.apps.length ? global.firebase.app() : global.firebase.initializeApp(firebaseConfig);
-        firebaseAuth = app.auth();
-        return firebaseAuth;
-    }
-
     function getSupabase() {
         if (supabaseClient) return supabaseClient;
         var config = global.__PHENNELLOPY_CONFIG__ || {};
