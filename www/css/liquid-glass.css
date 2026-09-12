@@ -110,6 +110,14 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .auth-modal__resend { display: block; margin: 12px auto 0; border: 0; background: transparent; color: var(--primary); cursor: pointer; font: inherit; }
 .auth-modal__resend[hidden] { display: none; }
 body.auth-modal-open { overflow: hidden; }
+.auth-setup-link { display: block; margin: 18px auto 0; border: 0; background: transparent; color: var(--primary); cursor: pointer; font: inherit; font-size: 13px; }
+.auth-setup-link:hover { text-decoration: underline; }
+.provider-checks { display: grid; gap: 10px; margin-top: 18px; }
+.provider-check { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); color: var(--with); font-size: 14px; }
+.provider-check__status { font-size: 12px; color: var(--muted); text-align: right; }
+.provider-check__status.ok { color: #86efac; }
+.provider-check__status.warn { color: #fbbf24; }
+.provider-check__help { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.35; }
 .login-card h1 { margin: 20px 0 8px; font-size: 32px; letter-spacing: -.05em; }
 .login-card .subtitle, .login-card .footer { color: var(--muted); line-height: 1.6; }
 .login-card .button-group { display: grid; gap: 12px; margin-top: 28px; }

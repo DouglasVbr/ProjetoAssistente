@@ -43,6 +43,18 @@
         <button class="btn" id="btnGithub" type="button"><i class="mdi mdi-github" aria-hidden="true"></i> Continuar com GitHub</button>
         <button class="btn" id="btnPhone" type="button"><i class="mdi mdi-cellphone" aria-hidden="true"></i> Continuar com celular</button>
       </div>
+      <button id="btnAuthSetup" class="auth-setup-link" type="button"><i class="mdi mdi-cog-outline" aria-hidden="true"></i> Configurar autenticação</button>
+      <div id="setupModal" class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="setupTitle" hidden>
+        <div class="auth-modal__backdrop" data-close-setup></div>
+        <div class="auth-modal__panel auth-setup-panel">
+          <button class="auth-modal__close" type="button" aria-label="Fechar" data-close-setup>×</button>
+          <div class="auth-modal__icon"><i class="mdi mdi-wrench-outline" aria-hidden="true"></i></div>
+          <h2 id="setupTitle">Assistente de autenticação</h2>
+          <p>Veja o que está pronto e teste cada método sem sair do app.</p>
+          <div id="providerChecks" class="provider-checks"><div class="provider-check is-loading">Verificando provedores...</div></div>
+          <button id="refreshProviders" class="auth-modal__resend" type="button">Atualizar status</button>
+        </div>
+      </div>
       <div class="divider" aria-hidden="true">ou</div>
       <button class="btn btn-guest" id="btnGuest" type="button">Continuar sem fazer login</button>
       <div class="footer"><p>Ao continuar, você concorda com os<br><a href="#">Termos de Serviço</a> e <a href="#">Política de Privacidade</a>.</p></div>
@@ -169,6 +181,35 @@
       }
       modalSubmit.addEventListener('click', function () { if (isCodeStep) verifyCode(); else sendCode(); });
       resend.addEventListener('click', sendCode);
+
+      var setupModal = document.getElementById('setupModal');
+      var providerChecks = document.getElementById('providerChecks');
+      function renderProvider(name, label, enabled, help) {
+        return '<div class="provider-check"><span><i class="mdi mdi-' + (name === 'google' ? 'google' : name === 'github' ? 'github' : 'message-text-outline') + '" aria-hidden="true"></i> ' + label + '<small class="provider-check__help">' + help + '</small></span><span class="provider-check__status ' + (enabled ? 'ok' : 'warn') + '">' + (enabled ? 'Pronto' : 'Precisa configurar') + '</span></div>';
+      }
+      function checkProviders() {
+        var config = window.__PHENNELLOPY_CONFIG__ || {};
+        if (!config.supabaseUrl || !config.supabaseKey || config.supabaseKey === 'preview-not-configured') {
+          providerChecks.innerHTML = '<div class="provider-check"><span>Supabase</span><span class="provider-check__status warn">Não conectado</span></div>';
+          return;
+        }
+        providerChecks.innerHTML = '<div class="provider-check is-loading">Verificando provedores...</div>';
+        fetch(String(config.supabaseUrl).replace(/\/$/, '') + '/auth/v1/settings', { headers: { apikey: config.supabaseKey } }).then(function (response) {
+          if (!response.ok) throw new Error('status');
+          return response.json();
+        }).then(function (settings) {
+          var external = settings.external || {};
+          providerChecks.innerHTML = renderProvider('google', 'Google', external.google !== false, external.google === false ? 'Ative Google no provedor Supabase.' : 'OAuth pronto para testar.') + renderProvider('github', 'GitHub', external.github !== false, external.github === false ? 'Ative GitHub no provedor Supabase.' : 'OAuth pronto para testar.') + renderProvider('phone', 'Celular', settings.sms_provider_enabled !== false, settings.sms_provider_enabled === false ? 'Ative um provedor SMS no Supabase.' : 'OTP por SMS disponível.');
+        }).catch(function () {
+          providerChecks.innerHTML = '<div class="provider-check"><span>Serviço de autenticação</span><span class="provider-check__status warn">Não foi possível verificar</span></div><small class="provider-check__help">Confirme a conexão do Supabase e tente atualizar novamente.</small>';
+        });
+      }
+      function openSetup() { setupModal.hidden = false; document.body.classList.add('auth-modal-open'); checkProviders(); }
+      function closeSetup() { setupModal.hidden = true; document.body.classList.remove('auth-modal-open'); }
+      document.getElementById('btnAuthSetup').addEventListener('click', openSetup);
+      document.getElementById('refreshProviders').addEventListener('click', checkProviders);
+      document.querySelectorAll('[data-close-setup]').forEach(function (element) { element.addEventListener('click', closeSetup); });
+
       function handleOAuthCallback() {
         var params = new URLSearchParams(window.location.search);
         if (!params.get('code') && !params.get('access_token') && !params.get('refresh_token')) return;
