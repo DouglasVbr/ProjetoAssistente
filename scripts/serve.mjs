@@ -8,6 +8,7 @@ const root = resolve(fileURLToPath(new URL('../www', import.meta.url)))
 const port = Number(process.env.PORT || 3000)
 const contentTypes = {
   '.css': 'text/css; charset=utf-8',
+  '.gif': 'image/gif',
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
@@ -24,8 +25,20 @@ function safePath(urlPath) {
   return candidate === root || candidate.startsWith(`${root}/`) ? candidate : null
 }
 
+function runtimeConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || 'https://placeholder.supabase.co'
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || 'preview-not-configured'
+  return `window.__PHENNELLOPY_CONFIG__=${JSON.stringify({ supabaseUrl: url, supabaseKey: key })};`
+}
+
 const server = createServer(async (request, response) => {
   try {
+    if ((request.url || '').split('?')[0] === '/runtime-config.js') {
+      response.writeHead(200, { 'Cache-Control': 'no-store', 'Content-Type': contentTypes['.js'] })
+      response.end(runtimeConfig())
+      return
+    }
+
     const requestedPath = safePath(request.url || '/')
     if (!requestedPath) {
       response.writeHead(403)

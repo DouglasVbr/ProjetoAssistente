@@ -7,6 +7,8 @@
   <title>Entrar — Phennellopy</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.9.96/css/materialdesignicons.min.css">
   <link rel="stylesheet" href="css/liquid-glass.css">
+  <script src="runtime-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
   <main class="login-page">
@@ -14,6 +16,7 @@
       <div class="logo"><img src="img/giphy.gif" alt="Logotipo da Phennellopy"></div>
       <h1 id="login-title">Bem-vindo de volta</h1>
       <p class="subtitle">Entre para continuar sua conversa com a Phennellopy.</p>
+      <div id="loginError" class="login-error" role="alert" aria-live="polite" hidden></div>
       <div class="button-group">
         <button class="btn" id="btnGoogle" type="button"><i class="mdi mdi-google" aria-hidden="true"></i> Continuar com Google</button>
         <button class="btn" id="btnGithub" type="button"><i class="mdi mdi-github" aria-hidden="true"></i> Continuar com GitHub</button>
@@ -34,39 +37,31 @@
   <script>
     (function () {
       function goAsGuest() { window.location.href = 'index.html'; }
-      function startProviderLogin(buttonId, method, fallback) {
+      function showError(message) {
+        var error = document.getElementById('loginError');
+        error.textContent = message;
+        error.hidden = false;
+      }
+      function startProviderLogin(buttonId, method) {
         $('#' + buttonId).on('click', function () {
           var button = this;
           button.disabled = true;
-          if (window.Phennellopy && window.Phennellopy.Auth && window.Phennellopy.Auth[method]) {
-            window.Phennellopy.Status && window.Phennellopy.Status.processing && window.Phennellopy.Status.processing('api');
-            window.Phennellopy.Auth[method]().catch(function (err) {
-              window.Phennellopy.Status && window.Phennellopy.Status.hide && window.Phennellopy.Status.hide();
-              window.app && window.app.dialog ? window.app.dialog.alert((err && err.message) || fallback, 'Erro') : alert(fallback);
-              button.disabled = false;
-            });
-          } else {
-            alert(fallback);
+          document.getElementById('loginError').hidden = true;
+          window.Phennellopy.Auth[method]().catch(function (err) {
+            showError((err && err.message) || 'Não foi possível iniciar o login. Tente novamente.');
             button.disabled = false;
-          }
+          });
         });
       }
-      startProviderLogin('btnGoogle', 'loginWithGoogle', 'Login com Google indisponível.');
-      startProviderLogin('btnGithub', 'loginWithGithub', 'Login com GitHub indisponível.');
-      function showError(message) {
-        window.app && window.app.dialog ? window.app.dialog.alert(message, 'Não foi possível entrar') : alert(message);
-      }
+      startProviderLogin('btnGoogle', 'loginWithGoogle');
+      startProviderLogin('btnGithub', 'loginWithGithub');
 
       function handleOAuthCallback() {
         var params = new URLSearchParams(window.location.search);
-        var code = params.get('code');
-        var provider = params.get('provider');
-        if (!code || (provider !== 'google' && provider !== 'github')) return;
-        var button = document.getElementById(provider === 'google' ? 'btnGoogle' : 'btnGithub');
-        if (button) button.disabled = true;
-        window.Phennellopy.Auth.handleOAuthCallback(code, provider, params.get('state'))
-          .then(function () { window.location.replace('index.html'); })
-          .catch(function (err) { showError(err && err.message ? err.message : 'Verifique a configuração do provedor e tente novamente.'); if (button) button.disabled = false; });
+        if (!params.get('code') && !params.get('access_token') && !params.get('refresh_token')) return;
+        window.Phennellopy.Auth.handleOAuthCallback()
+          .then(function () { window.history.replaceState({}, document.title, window.location.pathname); window.location.replace('index.html'); })
+          .catch(function (err) { showError(err && err.message ? err.message : 'Verifique a configuração do provedor e tente novamente.'); });
       }
 
       $('#btnPhone').on('click', function () {

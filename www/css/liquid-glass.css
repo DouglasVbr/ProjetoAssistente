@@ -92,6 +92,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .login-card { width: min(100%, 430px); padding: 34px; border-radius: 28px; text-align: center; }
 .login-card .logo { display: grid; place-items: center; }
 .login-card .logo img { width: 92px; border-radius: 50%; mix-blend-mode: screen; filter: brightness(1.08) saturate(1.08); }
+.login-error { margin: 0 0 1rem; padding: .75rem 1rem; border: 1px solid rgba(248, 113, 113, .45); border-radius: .75rem; background: rgba(127, 29, 29, .25); color: #fecaca; font-size: .9rem; line-height: 1.45; }
+.login-error[hidden] { display: none; }
 .login-card h1 { margin: 20px 0 8px; font-size: 32px; letter-spacing: -.05em; }
 .login-card .subtitle, .login-card .footer { color: var(--muted); line-height: 1.6; }
 .login-card .button-group { display: grid; gap: 12px; margin-top: 28px; }
