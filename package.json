@@ -5,8 +5,8 @@
   "description": "A sample Apache Cordova application that responds to the deviceready event.",
   "main": "index.js",
   "scripts": {
-    "start": "node scripts/serve.mjs",
-    "dev": "node scripts/serve.mjs",
+    "start": "node --env-file-if-exists=/vercel/share/.env.project scripts/serve.mjs",
+    "dev": "node --env-file-if-exists=/vercel/share/.env.project scripts/serve.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

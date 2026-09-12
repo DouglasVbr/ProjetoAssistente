@@ -94,10 +94,11 @@
         loginWithProvider: function (provider) {
             var client = getSupabase();
             if (!client) return Promise.reject(new Error('A autenticação ainda não foi configurada no servidor.'));
+            var config = global.__PHENNELLOPY_CONFIG__ || {};
             return client.auth.signInWithOAuth({
                 provider: provider,
                 options: {
-                    redirectTo: window.location.origin + window.location.pathname
+                    redirectTo: config.authRedirectUrl || window.location.origin + window.location.pathname
                 }
             }).then(function (result) {
                 if (result.error) throw result.error;
@@ -161,14 +162,12 @@
 
         // Logout
         logout: function () {
-            return NS.Api.post('auth/logout')
-                .then(function () {
-                    this.clearAuth();
-                }.bind(this))
-                .catch(function () {
-                    // Mesmo com erro, limpa localmente
-                    this.clearAuth();
-                }.bind(this));
+            var client = getSupabase();
+            var clear = function () { this.clearAuth(); }.bind(this);
+            if (client) {
+                return client.auth.signOut().then(clear).catch(clear);
+            }
+            return Promise.resolve().then(clear);
         }
     };
 })(window);
