@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 
 <head>
   <!-- Required meta tags-->
@@ -43,8 +43,8 @@
           <div class="navbar-bg bg-black"></div>
           <div class="navbar-inner">
             <a href="#" class=" back left padding-left txt-primary"><i class="mdi mdi-arrow-left"></i></a>
-            <div class="title txt-primary"><i class="mdi mdi-brain"></i>Memórias</div>
-            <a href="#" id="apagarMemorias" class="right padding-right txt-primary"><i class="mdi mdi-database"></i></a>
+            <div class="title txt-primary"><i class="mdi mdi-brain" aria-hidden="true"></i> Memórias</div>
+            <a href="#" id="apagarMemorias" class="right padding-right delete-action" aria-label="Apagar todas as memórias"><i class="mdi mdi-delete-sweep" aria-hidden="true"></i></a>
           </div>
         </div>
 
@@ -58,7 +58,7 @@
               <i class="searchbar-icon"></i>
               <span class="input-clear-button"></span>
             </div>
-            <span class="searchbar-disable-button">Cancel</span>
+            <span class="searchbar-disable-button">Fechar</span>
           </div>
         </form>
 
@@ -95,9 +95,9 @@
                     <li class="item-content item-input">
 
                       <div class="item-inner">
-                        <div class="item-title item-label txt-primary fw-bold">Titulo da Pergunta</div>
+                        <div class="item-title item-label txt-primary fw-bold">Título da pergunta</div>
                         <div class="item-input-wrap">
-                          <input id="perguntaEscrita" class="input-custom border-bottom-primary" type="text">
+                          <input id="perguntaEscrita" class="input-custom border-bottom-primary" type="text" placeholder="Ex.: Como devo te chamar?" aria-label="Título da pergunta">
                           <span class="input-clear-button"></span>
                         </div>
                       </div>
@@ -106,9 +106,9 @@
                     <li class="item-content item-input">
 
                       <div class="item-inner">
-                        <div class="item-title item-label txt-primary fw-bold">Oque a assistente entendeu </div>
+                        <div class="item-title item-label txt-primary fw-bold">O que a assistente entendeu</div>
                         <div class="item-input-wrap">
-                          <input id="perguntaEntendida" class="input-custom border-bottom-primary" type="text">
+                          <input id="perguntaEntendida" class="input-custom border-bottom-primary" type="text" placeholder="Como a pergunta será reconhecida" aria-label="Pergunta entendida pela assistente">
                           <span class="input-clear-button"></span>
                         </div>
                       </div>
@@ -137,7 +137,7 @@
                 <div class="fab fab-extended fab-right-bottom ">
                   <a href="#" class="btn-danger-outline popup-close ">
                     <i class=" mdi mdi-cancel"></i>
-                    <div class="fab-text">Cancel</div>
+                    <div class="fab-text">Cancelar</div>
                   </a>
                 </div>
 
@@ -218,7 +218,7 @@
                 <div class="fab fab-extended fab-right-bottom ">
                   <a href="#" class="btn-danger-outline popup-close ">
                     <i class=" mdi mdi-cancel"></i>
-                    <div class="fab-text">Cancel</div>
+                    <div class="fab-text">Cancelar</div>
                   </a>
                 </div>
 
@@ -233,14 +233,20 @@
 
 
         <!-- Scrollable page content -->
-        <div class="page-content bg-black txt-primary ">
+        <div class="page-content bg-black txt-primary">
+          <section class="page-heading" aria-labelledby="memorias-title">
+            <h1 id="memorias-title">Suas memórias</h1>
+            <p>Ensine respostas personalizadas para a Phennellopy lembrar sempre.</p>
+          </section>
 
-        <div id="semMemorias" class="display-none" >
-          <div class="block-title txt-primary">Nenhuma memória aprendida até o momento </div>
-        </div>
+          <div id="semMemorias" class="empty-state">
+            <i class="mdi mdi-brain" aria-hidden="true"></i>
+            <h2>Nenhuma memória ainda</h2>
+            <p>Adicione sua primeira pergunta e resposta usando o botão abaixo.</p>
+          </div>
 
          <div id="comMemorias" class="display-none">
-          <div class="block-title txt-primary">Aprendidas (<b id="qtAprendidas"></b>)</div>
+          <div class="block-title txt-primary">Memórias salvas (<b id="qtAprendidas"></b>)</div>
           <div class="list media-list">
             <ul id="listaPerguntas">
               

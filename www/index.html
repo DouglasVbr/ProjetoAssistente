@@ -1,115 +1,73 @@
-
 <!DOCTYPE html>
-<html>
-  <head>
-    <!-- Required meta tags-->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <!-- Color theme for statusbar (Android only) -->
-    <meta name="theme-color" content="#2196f3">
-    <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline';
-      style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
-      font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com;
-      media-src *;
-      img-src 'self' data: content: blob:;
-      connect-src 'self' http://10.0.2.2 http://192.168.*.* https://*.anthropic.com https://generativelanguage.googleapis.com https://seu-dominio.com;
-      script-src 'self' 'unsafe-inline' 'unsafe-eval';
-    ">
-    <!-- Your app title -->
-    <title>phennellopy.ia</title>
-    <!-- Path to Framework7 Library Bundle CSS -->
-    <link rel="stylesheet" href="css/framework7-bundle.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.9.96/css/materialdesignicons.min.css">
-    <!-- Path to your custom app styles-->
-    <link rel="stylesheet" href="css/liquid-glass.css">
-  </head>
-  <body>
-    <!-- App root element -->
-    <div id="app">
-
-      <!-- Your main view, should have "view-main" class -->
-      <div class="view view-main">
-        <!-- Initial Page, "data-name" contains page name -->
-        <div data-name="home" class="page">
-
-          <!-- Top Navbar -->
-          <div class="navbar">
-            <div class="navbar-bg bg-black"></div>
-            <div class="navbar-inner">
-              <div class="title txt-primary">phennellopy.ia</div>
-              <div class="right">
-                <a href="/configuracoes/" class="link icon-only">
-                  <i class="mdi mdi-cog" style="font-size: 24px;"></i>
-                </a>
-              </div>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#07111f">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; media-src *; img-src 'self' data: content: blob:; connect-src 'self' http://10.0.2.2 http://192.168.*.* https://*.anthropic.com https://generativelanguage.googleapis.com https://seu-dominio.com; script-src 'self' 'unsafe-inline' 'unsafe-eval';">
+  <title>Phennellopy — Assistente de voz</title>
+  <link rel="stylesheet" href="css/framework7-bundle.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.9.96/css/materialdesignicons.min.css">
+  <link rel="stylesheet" href="css/liquid-glass.css">
+</head>
+<body>
+  <div id="app">
+    <div class="view view-main">
+      <div data-name="home" class="page">
+        <div class="navbar">
+          <div class="navbar-bg"></div>
+          <div class="navbar-inner">
+            <div class="title txt-primary">phennellopy.ia</div>
+            <div class="right">
+              <a href="/configuracoes/" class="link icon-only" aria-label="Abrir configurações"><i class="mdi mdi-cog" aria-hidden="true"></i></a>
             </div>
           </div>
-            
-          <!-- fab button -->
-          <div class="fab fab-extended fab-center-bottom">
-            <a id="btnfalar" href="#" class="btn-primary-outline">
-                <i class="mdi mdi-microphone" style="font-size: 24px;"></i>
-                <div class="fab-text">Falar</div>
+        </div>
+
+        <div class="fab fab-extended fab-center-bottom">
+          <a id="btnfalar" href="#" class="btn-primary-outline" role="button" aria-label="Falar com a assistente" aria-live="polite">
+            <i class="mdi mdi-microphone" aria-hidden="true"></i><div class="fab-text">Falar agora</div>
+          </a>
+        </div>
+
+        <main class="page-content text-align-center">
+          <section class="logo-container" aria-labelledby="home-title">
+            <a href="/memorias/" class="link logo-link" aria-label="Abrir memórias">
+              <img src="img/giphy.gif" alt="Logotipo animado da Phennellopy">
             </a>
-        </div>
-
-          
-
-          <!-- Scrollable page content -->
-          <div class="page-content bg-black txt-primary text-align-center">
-            <!-- Logo animado com container glass -->
-            <div class="logo-container">
-              <a href="/memorias/" class="link logo-link">
-                <img style="max-width: 200px;" src="img/giphy.gif" alt="Phennellopy Logo">
-              </a>
-              <p class="logo-subtitle">Sua assistente de voz inteligente</p>
-            </div>
-            
-            <div class="block">
-              <p id="pergunta" class="display-none pergunta-texto"></p>
-            </div>
-
-            <div class="block">
-              <p id="resposta" class="resposta-texto"></p>
-            </div>
-            
-          </div>
-        </div>
+            <div class="status-pill"><span class="status-dot" aria-hidden="true"></span> Pronta para ajudar</div>
+          </section>
+          <section class="home-intro">
+            <h1 id="home-title">Converse com a sua assistente.</h1>
+            <p>Toque em “Falar agora” e faça uma pergunta. Suas respostas e memórias ficam sempre ao seu alcance.</p>
+          </section>
+          <section class="conversation-card" aria-label="Conversa atual">
+            <p id="pergunta" class="display-none pergunta-texto" aria-live="polite"></p>
+            <p id="resposta" class="resposta-texto" aria-live="polite">Estou pronta. O que você gostaria de saber?</p>
+          </section>
+        </main>
       </div>
     </div>
-    <!-- Path to Framework7 Library Bundle JS-->
-    <script type="text/javascript" src="js/lib/framework7-bundle.js"></script>
-    <!-- typed JS-->
-    <script type="text/javascript" src="js/lib/typed.umd.js"></script>
-    <!--jQuery 3.7.1-->
-    <script type="text/javascript" src="js/lib/jquery-3.7.1.min.js"></script>
-
-    <!-- Phennellopy Services (carrega antes do router) -->
-    <script type="text/javascript" src="src/utils/device.js"></script>
-    <script type="text/javascript" src="src/utils/escape.js"></script>
-    <script type="text/javascript" src="src/utils/fuzzy.js"></script>
-    <script type="text/javascript" src="src/config/env.js"></script>
-    <script type="text/javascript" src="src/services/api.service.js"></script>
-    <script type="text/javascript" src="src/services/status.service.js"></script>
-    <script type="text/javascript" src="src/services/auth.service.js"></script>
-    <script type="text/javascript" src="src/services/speech.service.js"></script>
-    <script type="text/javascript" src="src/services/tts.service.js"></script>
-    <script type="text/javascript" src="src/services/gemini.service.js"></script>
-    <script type="text/javascript" src="src/services/llm.service.js"></script>
-    <script type="text/javascript" src="src/services/openjarvis.service.js"></script>
-    <script type="text/javascript" src="src/repositories/memory.repository.js"></script>
-    <script type="text/javascript" src="src/services/migration.service.js"></script>
-
-    <!-- Path to your app js-->
-    <script type="text/javascript" src="js/router.js"></script>
-
-    <!--Cordova-->
-    <script type="text/javascript" src="cordova.js"></script>
-
-    
-
-  </body>
+  </div>
+  <script src="js/lib/framework7-bundle.js"></script>
+  <script src="js/lib/typed.umd.js"></script>
+  <script src="js/lib/jquery-3.7.1.min.js"></script>
+  <script src="src/utils/device.js"></script>
+  <script src="src/utils/escape.js"></script>
+  <script src="src/utils/fuzzy.js"></script>
+  <script src="src/config/env.js"></script>
+  <script src="src/services/api.service.js"></script>
+  <script src="src/services/status.service.js"></script>
+  <script src="src/services/auth.service.js"></script>
+  <script src="src/services/speech.service.js"></script>
+  <script src="src/services/tts.service.js"></script>
+  <script src="src/services/gemini.service.js"></script>
+  <script src="src/services/llm.service.js"></script>
+  <script src="src/services/openjarvis.service.js"></script>
+  <script src="src/repositories/memory.repository.js"></script>
+  <script src="src/services/migration.service.js"></script>
+  <script src="js/router.js"></script>
+  <script src="cordova.js"></script>
+</body>
 </html>
