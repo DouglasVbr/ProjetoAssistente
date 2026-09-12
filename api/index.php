@@ -482,8 +482,8 @@ try {
 
         json_ok(['token' => $token, 'user' => $user]);
     }
-+
-+    if ($method === 'POST' && $path === '/memorias/lote') {
+
+    if ($method === 'POST' && $path === '/memorias/lote') {
         $body = body_json();
         $items = $body['items'] ?? [];
         if (!is_array($items) || !$items) {

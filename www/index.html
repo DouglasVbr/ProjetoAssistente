@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#07111f">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; media-src *; img-src 'self' data: content: blob:; connect-src 'self' http://10.0.2.2 http://192.168.*.* https://*.anthropic.com https://generativelanguage.googleapis.com https://seu-dominio.com; script-src 'self' 'unsafe-inline' 'unsafe-eval';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; media-src *; img-src 'self' data: content: blob:; connect-src 'self' http://10.0.2.2 http://192.168.1.63 https://*.anthropic.com https://generativelanguage.googleapis.com https://seu-dominio.com https://*.supabase.co https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' 'unsafe-eval';">
   <title>Phennellopy — Assistente de voz</title>
   <link rel="stylesheet" href="css/framework7-bundle.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.9.96/css/materialdesignicons.min.css">
@@ -66,8 +66,6 @@
   <script src="src/services/llm.service.js"></script>
   <script src="src/services/openjarvis.service.js"></script>
   <script src="src/repositories/memory.repository.js"></script>
-  <script src="src/services/migration.service.js"></script>
   <script src="js/router.js"></script>
-  <script src="cordova.js"></script>
 </body>
 </html>

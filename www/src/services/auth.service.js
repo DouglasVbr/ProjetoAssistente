@@ -7,6 +7,30 @@
 
     var TOKEN_KEY = 'phennellopy_auth_token';
     var USER_KEY = 'phennellopy_user';
+    var supabaseClient = null;
+
+    function getSupabase() {
+        if (supabaseClient) return supabaseClient;
+        var config = global.__PHENNELLOPY_CONFIG__ || {};
+        if (!global.supabase || !config.supabaseUrl || !config.supabaseKey) return null;
+        supabaseClient = global.supabase.createClient(config.supabaseUrl, config.supabaseKey, {
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        });
+        return supabaseClient;
+    }
+
+    function saveSupabaseSession(session) {
+        if (!session) return null;
+        var user = session.user || {};
+        NS.Auth.setAuth(session.access_token, {
+            id: user.id,
+            name: user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name) || user.email || 'Usuário',
+            email: user.email || null,
+            avatar: user.user_metadata && (user.user_metadata.avatar_url || user.user_metadata.picture) || null,
+            provider: user.app_metadata && user.app_metadata.provider || 'supabase'
+        });
+        return session;
+    }
 
     NS.Auth = {
         // Verifica se está autenticado
@@ -60,94 +84,66 @@
 
         // Login com Google
          loginWithGoogle: function () {
-             return NS.Api.post('auth/google/init')
-                 .then(function (data) {
-                     if (data && data.authUrl) {
-                         // Abre janela OAuth (Cordova: InAppBrowser; Web: fallback para window.location)
-                         var url = String(data.authUrl);
-                         if (window.cordova && window.cordova.InAppBrowser && window.cordova.InAppBrowser.open) {
-                             var ref = window.cordova.InAppBrowser.open(url, '_blank', 'location=yes,clearsessioncache=yes');
-
-                             // Fechar automaticamente ao detectar callback
-                             ref.addEventListener('loadstart', function (evt) {
-                                 var u = '' + (evt && evt.url ? evt.url : '');
-                                 if (u.indexOf('provider=google') >= 0 && u.indexOf('code=') >= 0) {
-                                     try { ref.close(); } catch (e) {}
-                                 }
-                             });
-                         } else {
-                             window.location.href = url;
-                         }
-                     } else {
-                        throw new Error('URL de autenticação não retornada.');
-                    }
-                });
+            return this.loginWithProvider('google');
         },
 
-        // Login com GitHub
-         loginWithGithub: function () {
-             return NS.Api.post('auth/github/init')
-                 .then(function (data) {
-                     if (data && data.authUrl) {
-                         // Abre janela OAuth (Cordova: InAppBrowser; Web: fallback para window.location)
-                         var url = String(data.authUrl);
-                         if (window.cordova && window.cordova.InAppBrowser && window.cordova.InAppBrowser.open) {
-                             var ref = window.cordova.InAppBrowser.open(url, '_blank', 'location=yes,clearsessioncache=yes');
+        loginWithGithub: function () {
+            return this.loginWithProvider('github');
+        },
 
-                             // Fechar automaticamente ao detectar callback
-                             ref.addEventListener('loadstart', function (evt) {
-                                 var u = '' + (evt && evt.url ? evt.url : '');
-                                 if (u.indexOf('provider=github') >= 0 && u.indexOf('code=') >= 0) {
-                                     try { ref.close(); } catch (e) {}
-                                 }
-                             });
-                         } else {
-                             window.location.href = url;
-                         }
-                     } else {
-                        throw new Error('URL de autenticação não retornada.');
-                    }
-                });
+        loginWithProvider: function (provider) {
+            var client = getSupabase();
+            if (!client) return Promise.reject(new Error('A autenticação ainda não foi configurada no servidor.'));
+            var config = global.__PHENNELLOPY_CONFIG__ || {};
+            return client.auth.signInWithOAuth({
+                provider: provider,
+                options: {
+                    redirectTo: config.authRedirectUrl || window.location.origin + window.location.pathname
+                }
+            }).then(function (result) {
+                if (result.error) throw result.error;
+                return result.data;
+            });
         },
 
         // Enviar código SMS
         sendSMS: function (phoneNumber) {
+            var client = getSupabase();
             var phone = String(phoneNumber || '').trim();
-            if (!phone) {
-                return Promise.reject(new Error('Número de telefone inválido.'));
+            if (!client || !/^\+[1-9]\d{7,14}$/.test(phone)) {
+                return Promise.reject(new Error('Informe o celular no formato internacional, como +5511999999999.'));
             }
-            return NS.Api.post('auth/sms/send', { phone: phone });
+            return client.auth.signInWithOtp({ phone: phone }).then(function (result) {
+                if (result.error) throw result.error;
+                return result.data;
+            });
         },
 
         // Verificar código SMS
         verifySMS: function (phoneNumber, code) {
+            var client = getSupabase();
             var phone = String(phoneNumber || '').trim();
             var smsCode = String(code || '').trim();
-            if (!phone || !smsCode) {
+            if (!client || !phone || !/^\d{4,8}$/.test(smsCode)) {
                 return Promise.reject(new Error('Número ou código inválido.'));
             }
-            return NS.Api.post('auth/sms/verify', { phone: phone, code: smsCode })
-                .then(function (data) {
-                    if (data && data.token && data.user) {
-                        this.setAuth(data.token, data.user);
-                        return data;
-                    } else {
-                        throw new Error('Token ou dados do usuário não retornados.');
-                    }
-                }.bind(this));
+            return client.auth.verifyOtp({ phone: phone, token: smsCode, type: 'sms' }).then(function (result) {
+                if (result.error) throw result.error;
+                saveSupabaseSession(result.data.session);
+                return result.data;
+            });
         },
 
-        // Callback OAuth (Google/GitHub)
-        handleOAuthCallback: function (code, provider) {
-            return NS.Api.post('auth/' + provider + '/callback', { code: code })
-                .then(function (data) {
-                    if (data && data.token && data.user) {
-                        this.setAuth(data.token, data.user);
-                        return data;
-                    } else {
-                        throw new Error('Token ou dados do usuário não retornados.');
-                    }
-                }.bind(this));
+        // Recupera a sessão criada pelo callback OAuth do Supabase.
+        handleOAuthCallback: function () {
+            var client = getSupabase();
+            if (!client) return Promise.reject(new Error('A autenticação ainda não foi configurada no servidor.'));
+            return client.auth.getSession().then(function (result) {
+                if (result.error) throw result.error;
+                if (!result.data.session) throw new Error('Não foi possível concluir o login.');
+                saveSupabaseSession(result.data.session);
+                return result.data;
+            });
         },
 
         // Modo convidado (sem autenticação)
@@ -166,14 +162,12 @@
 
         // Logout
         logout: function () {
-            return NS.Api.post('auth/logout')
-                .then(function () {
-                    this.clearAuth();
-                }.bind(this))
-                .catch(function () {
-                    // Mesmo com erro, limpa localmente
-                    this.clearAuth();
-                }.bind(this));
+            var client = getSupabase();
+            var clear = function () { this.clearAuth(); }.bind(this);
+            if (client) {
+                return client.auth.signOut().then(clear).catch(clear);
+            }
+            return Promise.resolve().then(clear);
         }
     };
 })(window);

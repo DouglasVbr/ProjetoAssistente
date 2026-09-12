@@ -7,6 +7,8 @@
   <title>Entrar — Phennellopy</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.9.96/css/materialdesignicons.min.css">
   <link rel="stylesheet" href="css/liquid-glass.css">
+  <script src="runtime-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
   <main class="login-page">
@@ -14,6 +16,28 @@
       <div class="logo"><img src="img/giphy.gif" alt="Logotipo da Phennellopy"></div>
       <h1 id="login-title">Bem-vindo de volta</h1>
       <p class="subtitle">Entre para continuar sua conversa com a Phennellopy.</p>
+      <div id="loginError" class="login-error" role="alert" aria-live="polite" hidden></div>
+      <div id="authModal" class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle" hidden>
+        <div class="auth-modal__backdrop" data-close-auth-modal></div>
+        <div class="auth-modal__panel">
+          <button class="auth-modal__close" type="button" aria-label="Fechar" data-close-auth-modal>×</button>
+          <div class="auth-modal__icon" aria-hidden="true"><i id="authModalIcon" class="mdi mdi-shield-check"></i></div>
+          <h2 id="authModalTitle">Verificação segura</h2>
+          <p id="authModalDescription">Confirme sua identidade para continuar.</p>
+          <div id="phoneStep">
+            <label for="phoneInput">Celular</label>
+            <input id="phoneInput" type="tel" inputmode="tel" autocomplete="tel" placeholder="+55 (11) 99999-9999" maxlength="19">
+            <small>Usaremos seu celular apenas para enviar o código de verificação.</small>
+          </div>
+          <div id="codeStep" hidden>
+            <label for="codeInput">Código de verificação</label>
+            <input id="codeInput" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" maxlength="8">
+            <small>Digite o código enviado por SMS.</small>
+          </div>
+          <button id="authModalSubmit" class="btn auth-modal__submit" type="button">Enviar código</button>
+          <button id="authModalResend" class="auth-modal__resend" type="button" hidden>Enviar outro código</button>
+        </div>
+      </div>
       <div class="button-group">
         <button class="btn" id="btnGoogle" type="button"><i class="mdi mdi-google" aria-hidden="true"></i> Continuar com Google</button>
         <button class="btn" id="btnGithub" type="button"><i class="mdi mdi-github" aria-hidden="true"></i> Continuar com GitHub</button>
@@ -33,28 +57,127 @@
   <script src="src/services/auth.service.js"></script>
   <script>
     (function () {
+      var modal = document.getElementById('authModal');
+      var modalTitle = document.getElementById('authModalTitle');
+      var modalDescription = document.getElementById('authModalDescription');
+      var modalSubmit = document.getElementById('authModalSubmit');
+      var resend = document.getElementById('authModalResend');
+      var phoneStep = document.getElementById('phoneStep');
+      var codeStep = document.getElementById('codeStep');
+      var phoneInput = document.getElementById('phoneInput');
+      var codeInput = document.getElementById('codeInput');
+      var activePhone = '';
+      var isCodeStep = false;
+
       function goAsGuest() { window.location.href = 'index.html'; }
-      function startProviderLogin(buttonId, method, fallback) {
-        $('#' + buttonId).on('click', function () {
-          var button = this;
-          button.disabled = true;
-          if (window.Phennellopy && window.Phennellopy.Auth && window.Phennellopy.Auth[method]) {
-            window.Phennellopy.Status && window.Phennellopy.Status.processing && window.Phennellopy.Status.processing('api');
-            window.Phennellopy.Auth[method]().catch(function (err) {
-              window.Phennellopy.Status && window.Phennellopy.Status.hide && window.Phennellopy.Status.hide();
-              window.app && window.app.dialog ? window.app.dialog.alert((err && err.message) || fallback, 'Erro') : alert(fallback);
-              button.disabled = false;
-            });
-          } else {
-            alert(fallback);
-            button.disabled = false;
-          }
+      function showError(message) {
+        var error = document.getElementById('loginError');
+        error.textContent = message;
+        error.hidden = false;
+      }
+      function friendlyError(error, fallback) {
+        var message = error && error.message ? error.message.toLowerCase() : '';
+        if (message.indexOf('provider') >= 0 || message.indexOf('not enabled') >= 0) return 'Este método de login ainda não está habilitado no servidor.';
+        if (message.indexOf('rate') >= 0) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+        if (message.indexOf('fetch') >= 0 || message.indexOf('network') >= 0) return 'Não foi possível conectar ao serviço de autenticação. Verifique sua internet e tente novamente.';
+        return fallback;
+      }
+      function setButtonBusy(button, busy) {
+        button.disabled = busy;
+        button.classList.toggle('is-loading', busy);
+      }
+      function openModal() {
+        modal.hidden = false;
+        document.body.classList.add('auth-modal-open');
+        setTimeout(function () { (isCodeStep ? codeInput : phoneInput).focus(); }, 50);
+      }
+      function closeModal() {
+        modal.hidden = true;
+        document.body.classList.remove('auth-modal-open');
+        modalSubmit.disabled = false;
+      }
+      function formatPhone(value) {
+        var digits = String(value || '').replace(/\D/g, '');
+        if (digits.indexOf('55') === 0) digits = digits.slice(2);
+        digits = digits.slice(0, 11);
+        if (!digits) return '+55 ';
+        if (digits.length <= 2) return '+55 (' + digits;
+        if (digits.length <= 7) return '+55 (' + digits.slice(0, 2) + ') ' + digits.slice(2);
+        if (digits.length <= 10) return '+55 (' + digits.slice(0, 2) + ') ' + digits.slice(2, 6) + '-' + digits.slice(6);
+        return '+55 (' + digits.slice(0, 2) + ') ' + digits.slice(2, 7) + '-' + digits.slice(7);
+      }
+      function phoneE164(value) { return '+55' + String(value || '').replace(/\D/g, '').replace(/^55/, ''); }
+      function showPhoneStep() {
+        isCodeStep = false;
+        phoneStep.hidden = false;
+        codeStep.hidden = true;
+        resend.hidden = true;
+        modalTitle.textContent = 'Confirme seu celular';
+        modalDescription.textContent = 'Vamos enviar um código de segurança por SMS.';
+        modalSubmit.textContent = 'Enviar código';
+      }
+      function showCodeStep() {
+        isCodeStep = true;
+        phoneStep.hidden = true;
+        codeStep.hidden = false;
+        resend.hidden = false;
+        modalTitle.textContent = 'Digite o código';
+        modalDescription.textContent = 'Enviamos um código de 6 dígitos para ' + phoneInput.value + '.';
+        modalSubmit.textContent = 'Confirmar código';
+        modalSubmit.disabled = false;
+        codeInput.value = '';
+        codeInput.focus();
+      }
+      function startProviderLogin(buttonId, method) {
+        var button = document.getElementById(buttonId);
+        button.addEventListener('click', function () {
+          setButtonBusy(button, true);
+          document.getElementById('loginError').hidden = true;
+          window.Phennellopy.Auth[method]().catch(function (err) {
+            showError(friendlyError(err, 'Não foi possível iniciar o login. Tente novamente.'));
+            setButtonBusy(button, false);
+          });
         });
       }
-      startProviderLogin('btnGoogle', 'loginWithGoogle', 'Login com Google indisponível.');
-      startProviderLogin('btnGithub', 'loginWithGithub', 'Login com GitHub indisponível.');
-      $('#btnPhone').on('click', function () { alert('O login por celular estará disponível em breve.'); });
-      $('#btnGuest').on('click', goAsGuest);
+      startProviderLogin('btnGoogle', 'loginWithGoogle');
+      startProviderLogin('btnGithub', 'loginWithGithub');
+
+      phoneInput.addEventListener('input', function () { phoneInput.value = formatPhone(phoneInput.value); });
+      phoneInput.addEventListener('keydown', function (event) { if (event.key === 'Enter') modalSubmit.click(); });
+      codeInput.addEventListener('keydown', function (event) { if (event.key === 'Enter') modalSubmit.click(); });
+      document.querySelectorAll('[data-close-auth-modal]').forEach(function (element) { element.addEventListener('click', closeModal); });
+      document.getElementById('btnPhone').addEventListener('click', function () { showPhoneStep(); openModal(); });
+      document.getElementById('btnGuest').addEventListener('click', goAsGuest);
+
+      function sendCode() {
+        var value = phoneE164(phoneInput.value);
+        if (!/^\+55\d{10,11}$/.test(value)) { showError('Informe um celular brasileiro válido com DDD.'); return; }
+        modalSubmit.disabled = true;
+        window.Phennellopy.Auth.sendSMS(value).then(function () { activePhone = value; showCodeStep(); }).catch(function (err) {
+          showError(friendlyError(err, 'Não foi possível enviar o código SMS. Verifique se o login por celular está habilitado.'));
+          modalSubmit.disabled = false;
+        });
+      }
+      function verifyCode() {
+        var code = codeInput.value.replace(/\D/g, '');
+        if (!/^\d{6,8}$/.test(code)) { codeInput.focus(); return; }
+        modalSubmit.disabled = true;
+        window.Phennellopy.Auth.verifySMS(activePhone, code).then(function () { window.location.replace('index.html'); }).catch(function (err) {
+          showError(friendlyError(err, 'Código inválido ou expirado. Solicite um novo código.'));
+          modalSubmit.disabled = false;
+        });
+      }
+      modalSubmit.addEventListener('click', function () { if (isCodeStep) verifyCode(); else sendCode(); });
+      resend.addEventListener('click', sendCode);
+      function handleOAuthCallback() {
+        var params = new URLSearchParams(window.location.search);
+        if (!params.get('code') && !params.get('access_token') && !params.get('refresh_token')) return;
+        window.Phennellopy.Auth.handleOAuthCallback().then(function () {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          window.location.replace('index.html');
+        }).catch(function (err) { showError(friendlyError(err, 'Não foi possível concluir a autenticação. Tente novamente.')); });
+      }
+      handleOAuthCallback();
     })();
   </script>
 </body>

@@ -12,7 +12,7 @@
         MODE: 'dev',
         DEV: {
             // Use 10.0.2.2 para emulador Android, ou 192.168.1.63 para dispositivo físico
-            API_BASE: 'http://192.168.1.63/ProjetoAssistente/api',
+            API_BASE: window.location.origin + '/api',
             API_BASE_EMULATOR: 'http://10.0.2.2/ProjetoAssistente/api',
             LLM_BASE: 'https://api.anthropic.com'
         },
