@@ -53,8 +53,38 @@
       }
       startProviderLogin('btnGoogle', 'loginWithGoogle', 'Login com Google indisponível.');
       startProviderLogin('btnGithub', 'loginWithGithub', 'Login com GitHub indisponível.');
-      $('#btnPhone').on('click', function () { alert('O login por celular estará disponível em breve.'); });
+      function showError(message) {
+        window.app && window.app.dialog ? window.app.dialog.alert(message, 'Não foi possível entrar') : alert(message);
+      }
+
+      function handleOAuthCallback() {
+        var params = new URLSearchParams(window.location.search);
+        var code = params.get('code');
+        var provider = params.get('provider');
+        if (!code || (provider !== 'google' && provider !== 'github')) return;
+        var button = document.getElementById(provider === 'google' ? 'btnGoogle' : 'btnGithub');
+        if (button) button.disabled = true;
+        window.Phennellopy.Auth.handleOAuthCallback(code, provider, params.get('state'))
+          .then(function () { window.location.replace('index.html'); })
+          .catch(function (err) { showError(err && err.message ? err.message : 'Verifique a configuração do provedor e tente novamente.'); if (button) button.disabled = false; });
+      }
+
+      $('#btnPhone').on('click', function () {
+        var phone = window.prompt('Digite seu celular com DDD (ex.: +5511999999999):');
+        if (!phone) return;
+        var button = this;
+        button.disabled = true;
+        window.Phennellopy.Auth.sendSMS(phone)
+          .then(function () {
+            var code = window.prompt('Enviamos um código por SMS. Digite-o para continuar:');
+            if (!code) throw new Error('Código não informado.');
+            return window.Phennellopy.Auth.verifySMS(phone, code);
+          })
+          .then(function () { window.location.replace('index.html'); })
+          .catch(function (err) { showError(err && err.message ? err.message : 'Não foi possível validar o celular.'); button.disabled = false; });
+      });
       $('#btnGuest').on('click', goAsGuest);
+      handleOAuthCallback();
     })();
   </script>
 </body>

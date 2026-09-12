@@ -138,8 +138,10 @@
         },
 
         // Callback OAuth (Google/GitHub)
-        handleOAuthCallback: function (code, provider) {
-            return NS.Api.post('auth/' + provider + '/callback', { code: code })
+        handleOAuthCallback: function (code, provider, state) {
+            var payload = { code: code };
+            if (state) payload.state = state;
+            return NS.Api.post('auth/' + provider + '/callback', payload)
                 .then(function (data) {
                     if (data && data.token && data.user) {
                         this.setAuth(data.token, data.user);
