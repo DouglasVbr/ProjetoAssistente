@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="css/liquid-glass.css">
   <script src="runtime-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 </head>
 <body>
   <main class="login-page">
@@ -145,13 +147,18 @@
         button.addEventListener('click', function () {
           setButtonBusy(button, true);
           document.getElementById('loginError').hidden = true;
+          if (!window.Phennellopy || !window.Phennellopy.Auth || typeof window.Phennellopy.Auth[method] !== 'function') {
+            showError('O serviço de autenticação não carregou. Atualize a página e tente novamente.');
+            setButtonBusy(button, false);
+            return;
+          }
           window.Phennellopy.Auth[method]().catch(function (err) {
             showError(friendlyError(err, 'Não foi possível iniciar o login. Tente novamente.'));
             setButtonBusy(button, false);
           });
         });
       }
-      startProviderLogin('btnGoogle', 'loginWithGoogle');
+      startProviderLogin('btnGoogle', 'loginWithGoogleFirebase');
       startProviderLogin('btnGithub', 'loginWithGithub');
 
       phoneInput.addEventListener('input', function () { phoneInput.value = formatPhone(phoneInput.value); });

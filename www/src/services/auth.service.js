@@ -8,6 +8,41 @@
     var TOKEN_KEY = 'phennellopy_auth_token';
     var USER_KEY = 'phennellopy_user';
     var supabaseClient = null;
+    var firebaseAuth = null;
+
+    function getFirebaseAuth() {
+        if (firebaseAuth) return firebaseAuth;
+        if (!global.firebase) return null;
+        var firebaseConfig = {
+            apiKey: 'AIzaSyAzimiz9Ja_ph5NiFImABHRKVoqK_1BksVU',
+            authDomain: 'penelopy-4105f.firebaseapp.com',
+            projectId: 'penelopy-4105f',
+            storageBucket: 'penelopy-4105f.firebasestorage.app',
+            messagingSenderId: '605405457753',
+            appId: '1:605405457753:web:c3fc4f80b5a02eb9173048',
+            measurementId: 'G-J2GZ6EMD3C'
+        };
+        var app = global.firebase.apps && global.firebase.apps.length ? global.firebase.app() : global.firebase.initializeApp(firebaseConfig);
+        firebaseAuth = app.auth();
+        return firebaseAuth;
+    }
+
+    function getFirebaseAuth() {
+        if (firebaseAuth) return firebaseAuth;
+        if (!global.firebase) return null;
+        var firebaseConfig = {
+            apiKey: 'AIzaSyAzimiz9Ja_ph5NiFImABHRKVoqK_1BksVU',
+            authDomain: 'penelopy-4105f.firebaseapp.com',
+            projectId: 'penelopy-4105f',
+            storageBucket: 'penelopy-4105f.firebasestorage.app',
+            messagingSenderId: '605405457753',
+            appId: '1:605405457753:web:c3fc4f80b5a02eb9173048',
+            measurementId: 'G-J2GZ6EMD3C'
+        };
+        var app = global.firebase.apps && global.firebase.apps.length ? global.firebase.app() : global.firebase.initializeApp(firebaseConfig);
+        firebaseAuth = app.auth();
+        return firebaseAuth;
+    }
 
     function getSupabase() {
         if (supabaseClient) return supabaseClient;
@@ -82,8 +117,29 @@
             }
         },
 
-        // Login com Google
-         loginWithGoogle: function () {
+        // Login com Google via Firebase Authentication.
+        loginWithGoogleFirebase: function () {
+            var auth = getFirebaseAuth();
+            if (!auth) return Promise.reject(new Error('O Firebase Authentication não foi carregado.'));
+            var provider = new global.firebase.auth.GoogleAuthProvider();
+            return auth.signInWithPopup(provider).then(function (result) {
+                var user = result.user;
+                return user.getIdToken().then(function (token) {
+                    var profile = {
+                        id: user.uid,
+                        name: user.displayName || user.email || 'Usuário',
+                        email: user.email || null,
+                        avatar: user.photoURL || null,
+                        provider: 'google-firebase'
+                    };
+                    NS.Auth.setAuth(token, profile);
+                    return { token: token, user: profile };
+                });
+            });
+        },
+
+        // Fallback OAuth do Supabase.
+        loginWithGoogle: function () {
             return this.loginWithProvider('google');
         },
 
@@ -173,11 +229,12 @@
         // Logout
         logout: function () {
             var client = getSupabase();
+            var firebase = getFirebaseAuth();
             var clear = function () { this.clearAuth(); }.bind(this);
-            if (client) {
-                return client.auth.signOut().then(clear).catch(clear);
-            }
-            return Promise.resolve().then(clear);
+            var tasks = [];
+            if (client) tasks.push(client.auth.signOut());
+            if (firebase) tasks.push(firebase.signOut());
+            return Promise.all(tasks).then(clear).catch(clear);
         }
     };
 })(window);
