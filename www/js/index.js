@@ -156,9 +156,24 @@
     }
 
     // ========== EVENTO: BOTÃO FALAR ==========
-    $('#btnfalar').on('click', function () {
+    var isBusy = false;
+    var $voiceButton = $('#btnfalar');
+    var defaultVoiceLabel = $voiceButton.find('.fab-text').text();
+
+    function setVoiceState(label, icon, busy) {
+        isBusy = busy;
+        $voiceButton.attr('aria-disabled', busy ? 'true' : 'false');
+        $voiceButton.find('.fab-text').text(label);
+        $voiceButton.find('i').attr('class', 'mdi ' + icon);
+        $voiceButton.toggleClass('is-busy', busy);
+    }
+
+    $('#btnfalar').on('click', function (event) {
+        event.preventDefault();
+        if (isBusy) return;
         // Limpar resposta anterior
         $('#resposta').empty();
+        setVoiceState('Ouvindo…', 'mdi-microphone', true);
 
         NS.Status.listening();
 
@@ -175,13 +190,18 @@
                     NS.Status.error('Não entendi o que você disse', 2000);
                     return;
                 }
-                return processCommand(text);
+                    setVoiceState('Processando…', 'mdi-loading mdi-spin', true);
+                    return processCommand(text);
             })
             .catch(function (err) {
                 NS.Status.hide();
+                setVoiceState(defaultVoiceLabel, 'mdi-microphone', false);
                 var msg = err && err.message ? err.message : 'Erro no reconhecimento de voz';
                 app.dialog.alert(msg, 'Erro');
                 console.error('[index.js]', err);
+            })
+            .finally(function () {
+                setVoiceState(defaultVoiceLabel, 'mdi-microphone', false);
             });
     });
 
