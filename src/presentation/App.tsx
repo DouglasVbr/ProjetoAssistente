@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, Page, Navbar, Toolbar, Link, Fab, FabButtons, FabButton, Icon, Block, BlockTitle, List, ListItem, Popup, Searchbar } from 'framework7-react';
+import { App as F7App, View, Page, Navbar, Toolbar, Link, Fab, FabButtons, FabButton, Icon, Block, BlockTitle, List, ListItem, Popup, Searchbar } from 'framework7-react';
 import { ThemeProvider } from '@components/ThemeProvider';
 import { MemoriesPage } from '@pages/MemoriesPage';
 import { SettingsPage } from '@pages/SettingsPage';
@@ -23,8 +23,15 @@ export function App() {
   const { impact } = useHaptics();
 
   useEffect(() => {
-    loadMemories();
-  }, [loadMemories]);
+    // Storage (IndexedDB/SQLite) is opened asynchronously by useAppInit() and
+    // isn't ready the instant this component mounts — calling loadMemories()
+    // unconditionally raced that open and threw "IndexedDB not initialized".
+    // `initialized` (set by useAppInit() once storage + voice are ready) is
+    // exactly the signal to wait for.
+    if (initialized) {
+      loadMemories();
+    }
+  }, [initialized, loadMemories]);
 
   const handleSendMessage = async (text: string) => {
     await impact('light');
@@ -59,6 +66,14 @@ export function App() {
   }
 
   return (
+    // Framework7-react needs its own root <App> to create the f7 instance
+    // (f7init) before any framework7-react component can use it — <Navbar>'s
+    // useTheme() calls f7ready() internally, which crashed with "Cannot read
+    // properties of undefined (reading 'once')" because no f7 instance
+    // existed yet. `theme="auto"` picks iOS/Material rendering per platform;
+    // it's Framework7's own UI-style setting, unrelated to our light/dark
+    // `theme` from ThemeProvider below.
+    <F7App theme="auto" name="phennellopy.ia">
     <ThemeProvider theme={theme}>
       <View main url="/">
         <Page name="home" className="bg-black">
@@ -210,5 +225,6 @@ export function App() {
         </Page>
       </View>
     </ThemeProvider>
+    </F7App>
   );
 }
