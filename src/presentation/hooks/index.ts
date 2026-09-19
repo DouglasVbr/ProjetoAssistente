@@ -14,6 +14,7 @@ import { Capacitor } from '@capacitor/core';
 import { Network } from '@capacitor/network';
 import { Haptics } from '@capacitor/haptics';
 import { type AIModelConfig, type ChatMessage, type Memory, type VoiceCommand } from '../../domain/entities';
+import { assistantTools, executeTool } from '../tools';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -66,6 +67,59 @@ async function findMemoryMatch(query: string, config: AIModelConfig): Promise<Me
         m.questionVoice.toLowerCase() === text.toLowerCase()
     ) || null
   );
+}
+
+const MAX_TOOL_ITERATIONS = 4;
+
+/**
+ * Sends `messages` to the AI with the assistant tool registry attached and
+ * loops: if the model asks to call one or more tools (save/search a memory,
+ * change a setting, read the current date/time - see presentation/tools),
+ * runs them and feeds the results back as 'tool' messages, then asks again -
+ * up to MAX_TOOL_ITERATIONS rounds - until it settles on a plain text answer
+ * (or the round cap is hit, in which case whatever text came back is used
+ * as-is rather than looping forever). Shared by the voice-command flow and
+ * the text-chat flow below so both behave identically.
+ */
+async function runChatWithTools(
+  messages: ChatMessage[],
+  aiConfig: AIModelConfig,
+  onChunk: (chunk: string) => void
+): Promise<string> {
+  let currentMessages = messages;
+
+  for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+    const response = await hybridAIService.streamChat(currentMessages, aiConfig, onChunk, assistantTools);
+
+    if (!response.toolCalls?.length || i === MAX_TOOL_ITERATIONS - 1) {
+      return response.text;
+    }
+
+    const assistantToolCallMessage: ChatMessage = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: response.text,
+      timestamp: new Date(),
+      toolCalls: response.toolCalls,
+    };
+
+    const toolResultMessages: ChatMessage[] = await Promise.all(
+      response.toolCalls.map(
+        async (call): Promise<ChatMessage> => ({
+          id: uuidv4(),
+          role: 'tool',
+          content: await executeTool(call),
+          timestamp: new Date(),
+          toolCallId: call.id,
+          toolName: call.name,
+        })
+      )
+    );
+
+    currentMessages = [...currentMessages, assistantToolCallMessage, ...toolResultMessages];
+  }
+
+  return '';
 }
 
 /**
@@ -200,8 +254,10 @@ export function useAppInit() {
         response = memoryMatch.answerText;
       } else {
         const messages = useAppStore.getState().messages;
-        const aiResponse = await hybridAIService.chat(messages, aiConfig);
-        response = aiResponse.text;
+        // Runs the tool-calling loop (save/search memories, change settings,
+        // current date/time) before settling on a final answer; voice
+        // replies aren't streamed anywhere, so onChunk is a no-op.
+        response = await runChatWithTools(messages, aiConfig, () => {});
       }
 
       const assistantMessage: ChatMessage = {
@@ -312,13 +368,13 @@ export function useChat() {
       if (memoryMatch) {
         fullResponse = memoryMatch.answerText;
       } else {
-        await hybridAIService.streamChat(
-          [...useAppStore.getState().messages, userMessage],
-          aiConfig,
-          (chunk) => {
-            fullResponse += chunk;
-          }
-        );
+        // `addMessage(userMessage)` above already put it in the store, so
+        // reading messages back out already includes it - the previous
+        // code appended it a second time here, duplicating it in what got
+        // sent to the AI. The UI only shows a "typing" indicator while
+        // streaming (not partial text), so onChunk is a no-op here too;
+        // runChatWithTools's return value is the authoritative final text.
+        fullResponse = await runChatWithTools(useAppStore.getState().messages, aiConfig, () => {});
       }
 
       const assistantMessage: ChatMessage = {

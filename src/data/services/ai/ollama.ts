@@ -2,19 +2,30 @@
  * AI Service - Ollama Implementation (Local AI)
  */
 
-import type { IAIService, AIModelConfig, ChatMessage, AIResponse, TokenUsage } from '@domain/repositories';
+import type { IAIService, AIModelConfig, ChatMessage, AIResponse, TokenUsage, ToolDefinition } from '@domain/repositories';
 import { AIServiceError } from '@core/errors';
 import { env } from '@core/config';
 
+interface OllamaToolCall {
+  function: { name: string; arguments: Record<string, unknown> };
+}
+
 interface OllamaMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  tool_calls?: OllamaToolCall[];
+}
+
+interface OllamaTool {
+  type: 'function';
+  function: { name: string; description: string; parameters: object };
 }
 
 interface OllamaChatRequest {
   model: string;
   messages: OllamaMessage[];
   stream: boolean;
+  tools?: OllamaTool[];
   options?: {
     temperature: number;
     top_p: number;
@@ -61,6 +72,44 @@ interface OllamaModelsResponse {
   models: Array<{ name: string; model: string; modified_at: string; size: number; digest: string }>;
 }
 
+/**
+ * Maps our provider-agnostic ChatMessage[] into Ollama's /api/chat shape.
+ * Ollama's tool support (models that support it, e.g. llama3.1+) is simpler
+ * than OpenAI's: no call ids to echo back, just role 'tool' with the result
+ * content, and an assistant turn's tool_calls carry only name + arguments.
+ */
+function toOllamaMessages(messages: ChatMessage[]): OllamaMessage[] {
+  return messages.map((m): OllamaMessage => {
+    if (m.role === 'tool') {
+      return { role: 'tool', content: m.content };
+    }
+    if (m.role === 'assistant' && m.toolCalls?.length) {
+      return {
+        role: 'assistant',
+        content: m.content,
+        tool_calls: m.toolCalls.map(tc => ({ function: { name: tc.name, arguments: tc.arguments } })),
+      };
+    }
+    return { role: m.role as 'system' | 'user' | 'assistant', content: m.content };
+  });
+}
+
+function toOllamaTools(tools?: ToolDefinition[]): Pick<OllamaChatRequest, 'tools'> {
+  if (!tools || tools.length === 0) return {};
+  return {
+    tools: tools.map(t => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } })),
+  };
+}
+
+function toolCallsFrom(message: OllamaMessage): AIResponse['toolCalls'] {
+  if (!message.tool_calls?.length) return undefined;
+  return message.tool_calls.map((tc, i) => ({
+    id: `${tc.function.name}-${Date.now()}-${i}`,
+    name: tc.function.name,
+    arguments: tc.function.arguments,
+  }));
+}
+
 export class OllamaService implements IAIService {
   private baseUrl: string;
   private defaultModel: string;
@@ -86,12 +135,13 @@ export class OllamaService implements IAIService {
     };
   }
 
-  async chat(messages: ChatMessage[], config: AIModelConfig): Promise<AIResponse> {
+  async chat(messages: ChatMessage[], config: AIModelConfig, tools?: ToolDefinition[]): Promise<AIResponse> {
     const requestBody: OllamaChatRequest = {
       model: config.model || this.defaultModel,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: toOllamaMessages(messages),
       stream: false,
       options: this.buildOptions(config),
+      ...toOllamaTools(tools),
     };
 
     try {
@@ -114,6 +164,7 @@ export class OllamaService implements IAIService {
 
       return {
         text: data.message.content || '',
+        toolCalls: toolCallsFrom(data.message),
         usage: {
           promptTokens: data.prompt_eval_count,
           completionTokens: data.eval_count,
@@ -131,13 +182,15 @@ export class OllamaService implements IAIService {
   async streamChat(
     messages: ChatMessage[],
     config: AIModelConfig,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    tools?: ToolDefinition[]
   ): Promise<AIResponse> {
     const requestBody: OllamaChatRequest = {
       model: config.model || this.defaultModel,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: toOllamaMessages(messages),
       stream: true,
       options: this.buildOptions(config),
+      ...toOllamaTools(tools),
     };
 
     try {
@@ -162,6 +215,7 @@ export class OllamaService implements IAIService {
       const decoder = new TextDecoder();
       let fullText = '';
       let usage: TokenUsage | undefined;
+      let toolCalls: AIResponse['toolCalls'];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -173,11 +227,16 @@ export class OllamaService implements IAIService {
         for (const line of lines) {
           try {
             const parsed: OllamaStreamChunk = JSON.parse(line);
-            
+
             if (parsed.message.content) {
               fullText += parsed.message.content;
               onChunk(parsed.message.content);
             }
+
+            // Ollama doesn't stream tool_calls incrementally - they arrive
+            // whole, typically on the final (done:true) chunk.
+            const calls = toolCallsFrom(parsed.message);
+            if (calls) toolCalls = calls;
 
             if (parsed.done && parsed.prompt_eval_count !== undefined) {
               usage = {
@@ -194,6 +253,7 @@ export class OllamaService implements IAIService {
 
       return {
         text: fullText,
+        toolCalls,
         usage,
         model: config.model || this.defaultModel,
         provider: 'ollama',
@@ -248,7 +308,7 @@ export class OllamaService implements IAIService {
         headers: this.getHeaders(),
       });
       if (!response.ok) return [];
-      
+
       const data: OllamaModelsResponse = await response.json();
       return data.models.map(m => m.name).sort();
     } catch {
@@ -262,7 +322,7 @@ export class OllamaService implements IAIService {
       headers: this.getHeaders(),
       body: JSON.stringify({ name: modelName, stream: false }),
     });
-    
+
     if (!response.ok) {
       throw new AIServiceError(`Failed to pull model ${modelName}`, 'ollama');
     }
@@ -274,7 +334,7 @@ export class OllamaService implements IAIService {
       headers: this.getHeaders(),
       body: JSON.stringify({ name: modelName }),
     });
-    
+
     if (!response.ok) {
       throw new AIServiceError(`Failed to delete model ${modelName}`, 'ollama');
     }

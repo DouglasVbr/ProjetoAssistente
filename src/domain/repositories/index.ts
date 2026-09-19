@@ -14,6 +14,7 @@ import type {
   AIModelConfig,
   TokenUsage,
   ToolCall,
+  ToolDefinition,
   VoiceIntent,
   AIProvider,
   VoiceSettings,
@@ -30,6 +31,7 @@ export type {
   AIModelConfig,
   TokenUsage,
   ToolCall,
+  ToolDefinition,
   VoiceIntent,
   AIProvider,
   VoiceSettings,
@@ -79,8 +81,13 @@ export interface INetworkRepository {
 }
 
 export interface IAIService {
-  chat(messages: ChatMessage[], config: AIModelConfig): Promise<AIResponse>;
-  streamChat(messages: ChatMessage[], config: AIModelConfig, onChunk: (chunk: string) => void): Promise<AIResponse>;
+  chat(messages: ChatMessage[], config: AIModelConfig, tools?: ToolDefinition[]): Promise<AIResponse>;
+  streamChat(
+    messages: ChatMessage[],
+    config: AIModelConfig,
+    onChunk: (chunk: string) => void,
+    tools?: ToolDefinition[]
+  ): Promise<AIResponse>;
   getEmbedding(text: string, config: AIModelConfig): Promise<number[]>;
   isAvailable(): Promise<boolean>;
   getModels(): Promise<string[]>;

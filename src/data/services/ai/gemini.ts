@@ -2,16 +2,18 @@
  * AI Service - Google Gemini Implementation
  */
 
-import type { IAIService, AIModelConfig, ChatMessage, AIResponse, TokenUsage } from '@domain/repositories';
+import type { IAIService, AIModelConfig, ChatMessage, AIResponse, TokenUsage, ToolDefinition } from '@domain/repositories';
 import { AIServiceError } from '@core/errors';
 import { env } from '@core/config';
 
 interface GeminiPart {
-  text: string;
+  text?: string;
+  functionCall?: { name: string; args: Record<string, unknown> };
+  functionResponse?: { name: string; response: Record<string, unknown> };
 }
 
 interface GeminiContent {
-  role: 'user' | 'model';
+  role: 'user' | 'model' | 'function';
   parts: GeminiPart[];
 }
 
@@ -21,10 +23,17 @@ interface GeminiGenerationConfig {
   maxOutputTokens: number;
 }
 
+interface GeminiFunctionDeclaration {
+  name: string;
+  description: string;
+  parameters: object;
+}
+
 interface GeminiGenerateRequest {
   contents: GeminiContent[];
   systemInstruction?: { parts: GeminiPart[] };
   generationConfig: GeminiGenerationConfig;
+  tools?: Array<{ functionDeclarations: GeminiFunctionDeclaration[] }>;
 }
 
 interface GeminiCandidate {
@@ -54,12 +63,14 @@ interface GeminiModelsResponse {
 
 /**
  * Gemini has no "assistant"/"system" roles like OpenAI-style APIs: only
- * "user" and "model" ride in `contents`, and a system prompt goes in the
- * separate `systemInstruction` field. This splits a ChatMessage[] into both.
+ * "user"/"model"/"function" ride in `contents`, and a system prompt goes in
+ * the separate `systemInstruction` field. This also carries tool calls
+ * (assistant → `functionCall` parts on a "model" turn) and tool results
+ * (our 'tool' role → a `functionResponse` part on a "function" turn) into
+ * Gemini's shape.
  */
 function toGeminiRequest(
-  messages: ChatMessage[],
-  modelConfig: AIModelConfig
+  messages: ChatMessage[]
 ): Pick<GeminiGenerateRequest, 'contents' | 'systemInstruction'> {
   const systemParts: GeminiPart[] = [];
   const contents: GeminiContent[] = [];
@@ -69,6 +80,20 @@ function toGeminiRequest(
       systemParts.push({ text: m.content });
       continue;
     }
+    if (m.role === 'tool') {
+      contents.push({
+        role: 'function',
+        parts: [{ functionResponse: { name: m.toolName || 'unknown', response: { content: m.content } } }],
+      });
+      continue;
+    }
+    if (m.role === 'assistant' && m.toolCalls?.length) {
+      contents.push({
+        role: 'model',
+        parts: m.toolCalls.map(tc => ({ functionCall: { name: tc.name, args: tc.arguments } })),
+      });
+      continue;
+    }
     contents.push({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] });
   }
 
@@ -76,6 +101,26 @@ function toGeminiRequest(
     contents,
     systemInstruction: systemParts.length > 0 ? { parts: systemParts } : undefined,
   };
+}
+
+function toGeminiTools(tools?: ToolDefinition[]): Pick<GeminiGenerateRequest, 'tools'> {
+  if (!tools || tools.length === 0) return {};
+  return {
+    tools: [
+      {
+        functionDeclarations: tools.map(t => ({ name: t.name, description: t.description, parameters: t.parameters })),
+      },
+    ],
+  };
+}
+
+/** Extracts plain text and any function calls out of a candidate's parts. */
+function readParts(parts: GeminiPart[] | undefined): { text: string; toolCalls: AIResponse['toolCalls'] } {
+  const text = parts?.map(p => p.text || '').join('') || '';
+  const calls = (parts || [])
+    .filter((p): p is GeminiPart & { functionCall: NonNullable<GeminiPart['functionCall']> } => !!p.functionCall)
+    .map((p, i) => ({ id: `${p.functionCall.name}-${Date.now()}-${i}`, name: p.functionCall.name, arguments: p.functionCall.args }));
+  return { text, toolCalls: calls.length > 0 ? calls : undefined };
 }
 
 export class GeminiService implements IAIService {
@@ -88,9 +133,9 @@ export class GeminiService implements IAIService {
     this.apiKey = apiKey || env.VITE_GEMINI_API_KEY;
   }
 
-  async chat(messages: ChatMessage[], modelConfig: AIModelConfig): Promise<AIResponse> {
+  async chat(messages: ChatMessage[], modelConfig: AIModelConfig, tools?: ToolDefinition[]): Promise<AIResponse> {
     const model = modelConfig.model || this.defaultModel;
-    const { contents, systemInstruction } = toGeminiRequest(messages, modelConfig);
+    const { contents, systemInstruction } = toGeminiRequest(messages);
 
     const requestBody: GeminiGenerateRequest = {
       contents,
@@ -100,6 +145,7 @@ export class GeminiService implements IAIService {
         topP: modelConfig.topP,
         maxOutputTokens: modelConfig.maxTokens,
       },
+      ...toGeminiTools(tools),
     };
 
     try {
@@ -122,10 +168,11 @@ export class GeminiService implements IAIService {
       }
 
       const data: GeminiGenerateResponse = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+      const { text, toolCalls } = readParts(data.candidates?.[0]?.content?.parts);
 
       return {
         text,
+        toolCalls,
         usage: data.usageMetadata
           ? {
               promptTokens: data.usageMetadata.promptTokenCount,
@@ -145,10 +192,11 @@ export class GeminiService implements IAIService {
   async streamChat(
     messages: ChatMessage[],
     modelConfig: AIModelConfig,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    tools?: ToolDefinition[]
   ): Promise<AIResponse> {
     const model = modelConfig.model || this.defaultModel;
-    const { contents, systemInstruction } = toGeminiRequest(messages, modelConfig);
+    const { contents, systemInstruction } = toGeminiRequest(messages);
 
     const requestBody: GeminiGenerateRequest = {
       contents,
@@ -158,6 +206,7 @@ export class GeminiService implements IAIService {
         topP: modelConfig.topP,
         maxOutputTokens: modelConfig.maxTokens,
       },
+      ...toGeminiTools(tools),
     };
 
     try {
@@ -186,6 +235,7 @@ export class GeminiService implements IAIService {
       let fullText = '';
       let usage: TokenUsage | undefined;
       let buffer = '';
+      const toolCalls: NonNullable<AIResponse['toolCalls']> = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -202,11 +252,12 @@ export class GeminiService implements IAIService {
 
           try {
             const parsed: GeminiGenerateResponse = JSON.parse(data);
-            const chunkText = parsed.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+            const { text: chunkText, toolCalls: chunkCalls } = readParts(parsed.candidates?.[0]?.content?.parts);
             if (chunkText) {
               fullText += chunkText;
               onChunk(chunkText);
             }
+            if (chunkCalls) toolCalls.push(...chunkCalls);
             if (parsed.usageMetadata) {
               usage = {
                 promptTokens: parsed.usageMetadata.promptTokenCount,
@@ -220,7 +271,7 @@ export class GeminiService implements IAIService {
         }
       }
 
-      return { text: fullText, usage, model, provider: 'gemini' };
+      return { text: fullText, toolCalls: toolCalls.length > 0 ? toolCalls : undefined, usage, model, provider: 'gemini' };
     } catch (error) {
       if (error instanceof AIServiceError) throw error;
       throw new AIServiceError('Gemini streaming failed', 'gemini', error as Error);

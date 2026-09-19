@@ -2,18 +2,19 @@
  * AI Service - OpenAI Implementation
  */
 
-import type { IAIService, AIModelConfig, ChatMessage, AIResponse, TokenUsage } from '@domain/repositories';
+import type { IAIService, AIModelConfig, ChatMessage, AIResponse, TokenUsage, ToolDefinition } from '@domain/repositories';
 import { AIServiceError } from '@core/errors';
 import { config as appConfig, env } from '@core/config';
 
 interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string;
+  content: string | null;
   tool_calls?: Array<{
     id: string;
     type: 'function';
     function: { name: string; arguments: string };
   }>;
+  tool_call_id?: string;
 }
 
 interface OpenAIChatRequest {
@@ -81,6 +82,42 @@ interface OpenAIModelsResponse {
   data: Array<{ id: string; object: string; created: number; owned_by: string }>;
 }
 
+/**
+ * Maps our provider-agnostic ChatMessage[] (which can carry a 'tool' role and
+ * an assistant message's toolCalls) into OpenAI's wire format: a tool result
+ * becomes `{role:'tool', tool_call_id, content}`, and an assistant message
+ * that asked for tool calls carries them back as `tool_calls` (OpenAI expects
+ * this echoed on resend, matched by id, before it will read the following
+ * tool messages).
+ */
+function toOpenAIMessages(messages: ChatMessage[]): OpenAIMessage[] {
+  return messages.map((m): OpenAIMessage => {
+    if (m.role === 'tool') {
+      return { role: 'tool', content: m.content, tool_call_id: m.toolCallId };
+    }
+    if (m.role === 'assistant' && m.toolCalls?.length) {
+      return {
+        role: 'assistant',
+        content: m.content || null,
+        tool_calls: m.toolCalls.map(tc => ({
+          id: tc.id,
+          type: 'function',
+          function: { name: tc.name, arguments: JSON.stringify(tc.arguments) },
+        })),
+      };
+    }
+    return { role: m.role as 'system' | 'user' | 'assistant', content: m.content };
+  });
+}
+
+function toOpenAITools(tools?: ToolDefinition[]): Pick<OpenAIChatRequest, 'tools' | 'tool_choice'> {
+  if (!tools || tools.length === 0) return {};
+  return {
+    tools: tools.map(t => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } })),
+    tool_choice: 'auto',
+  };
+}
+
 export class OpenAIService implements IAIService {
   private apiKey: string;
   private baseUrl: string;
@@ -99,15 +136,9 @@ export class OpenAIService implements IAIService {
     };
   }
 
-  async chat(messages: ChatMessage[], modelConfig: AIModelConfig): Promise<AIResponse> {
+  async chat(messages: ChatMessage[], modelConfig: AIModelConfig, tools?: ToolDefinition[]): Promise<AIResponse> {
     const requestBody: OpenAIChatRequest = {
-      model: modelConfig.model || this.defaultModel,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
-      temperature: modelConfig.temperature,
-      max_tokens: modelConfig.maxTokens,
-      top_p: modelConfig.topP,
-      presence_penalty: modelConfig.presencePenalty,
-      frequency_penalty: modelConfig.frequencyPenalty,
+      ...this.buildRequestBody(messages, modelConfig, tools),
     };
 
     try {
@@ -153,10 +184,11 @@ export class OpenAIService implements IAIService {
   async streamChat(
     messages: ChatMessage[],
     modelConfig: AIModelConfig,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    tools?: ToolDefinition[]
   ): Promise<AIResponse> {
     const requestBody: OpenAIChatRequest = {
-      ...this.buildRequestBody(messages, modelConfig),
+      ...this.buildRequestBody(messages, modelConfig, tools),
       stream: true,
     };
 
@@ -199,7 +231,7 @@ export class OpenAIService implements IAIService {
             try {
               const parsed: OpenAIStreamChunk = JSON.parse(data);
               const choice = parsed.choices[0];
-              
+
               if (choice.delta.content) {
                 fullText += choice.delta.content;
                 onChunk(choice.delta.content);
@@ -280,7 +312,7 @@ export class OpenAIService implements IAIService {
 
   async isAvailable(): Promise<boolean> {
     if (!this.apiKey) return false;
-    
+
     try {
       const response = await fetch(`${this.baseUrl}${appConfig.api.openai.modelsEndpoint}`, {
         headers: this.getHeaders(),
@@ -297,7 +329,7 @@ export class OpenAIService implements IAIService {
         headers: this.getHeaders(),
       });
       if (!response.ok) return [];
-      
+
       const data: OpenAIModelsResponse = await response.json();
       return data.data
         .filter(m => m.id.includes('gpt') || m.id.includes('o1'))
@@ -308,15 +340,16 @@ export class OpenAIService implements IAIService {
     }
   }
 
-  private buildRequestBody(messages: ChatMessage[], modelConfig: AIModelConfig): Omit<OpenAIChatRequest, 'stream'> {
+  private buildRequestBody(messages: ChatMessage[], modelConfig: AIModelConfig, tools?: ToolDefinition[]): Omit<OpenAIChatRequest, 'stream'> {
     return {
       model: modelConfig.model || this.defaultModel,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: toOpenAIMessages(messages),
       temperature: modelConfig.temperature,
       max_tokens: modelConfig.maxTokens,
       top_p: modelConfig.topP,
       presence_penalty: modelConfig.presencePenalty,
       frequency_penalty: modelConfig.frequencyPenalty,
+      ...toOpenAITools(tools),
     };
   }
 }

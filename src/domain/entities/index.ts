@@ -18,10 +18,16 @@ export interface Memory {
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   timestamp: Date;
   audioUrl?: string;
+  /** Set on an 'assistant' message that asked to call one or more tools. */
+  toolCalls?: ToolCall[];
+  /** Set on a 'tool' message: which call (by id) this message answers. */
+  toolCallId?: string;
+  /** Set on a 'tool' message: the tool's name, for providers (Gemini) that need it. */
+  toolName?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -33,7 +39,7 @@ export interface VoiceCommand {
   entities?: Record<string, string>;
 }
 
-export type VoiceIntent = 
+export type VoiceIntent =
   | 'chat'
   | 'memory_create'
   | 'memory_read'
@@ -57,6 +63,25 @@ export interface ToolCall {
   id: string;
   name: string;
   arguments: Record<string, unknown>;
+}
+
+/**
+ * Describes one callable action the AI can invoke, in a JSON-Schema-ish shape
+ * every provider (OpenAI, Gemini, Ollama) can translate into its own native
+ * function/tool-calling request format. Kept provider-agnostic on purpose:
+ * `data/services/ai/*` each map this into their own wire format.
+ */
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<
+      string,
+      { type: string; description?: string; enum?: string[] }
+    >;
+    required?: string[];
+  };
 }
 
 export interface TokenUsage {

@@ -2,7 +2,7 @@
  * Hybrid AI Service - Combines cloud and local AI with automatic fallback
  */
 
-import type { IAIService, AIModelConfig, ChatMessage, AIResponse, TokenUsage } from '@domain/repositories';
+import type { IAIService, AIModelConfig, ChatMessage, AIResponse, ToolDefinition } from '@domain/repositories';
 import { OpenAIService } from './openai';
 import { OllamaService } from './ollama';
 import { GeminiService } from './gemini';
@@ -91,18 +91,19 @@ export class HybridAIService implements IAIService {
     return this.currentProvider;
   }
 
-  async chat(messages: ChatMessage[], config: AIModelConfig): Promise<AIResponse> {
+  async chat(messages: ChatMessage[], config: AIModelConfig, tools?: ToolDefinition[]): Promise<AIResponse> {
     const provider = await this.selectProvider(config);
-    return this.executeWithFallback('chat', provider, messages, config);
+    return this.executeWithFallback('chat', provider, messages, config, tools);
   }
 
   async streamChat(
     messages: ChatMessage[],
     config: AIModelConfig,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    tools?: ToolDefinition[]
   ): Promise<AIResponse> {
     const provider = await this.selectProvider(config);
-    return this.executeWithFallback('streamChat', provider, messages, config, onChunk);
+    return this.executeWithFallback('streamChat', provider, messages, config, onChunk, tools);
   }
 
   async getEmbedding(text: string, config: AIModelConfig): Promise<number[]> {
@@ -161,14 +162,14 @@ export class HybridAIService implements IAIService {
   private async isProviderHealthy(name: string): Promise<boolean> {
     const config = this.providers.get(name);
     if (!config || !config.enabled) return false;
-    
+
     if (config.lastFailure) {
       const timeSinceFailure = Date.now() - config.lastFailure.getTime();
       if (timeSinceFailure < this.failureCooldownMs) {
         return false;
       }
     }
-    
+
     return await config.service.isAvailable();
   }
 
@@ -223,12 +224,17 @@ export class HybridAIService implements IAIService {
     if (!config) throw new Error(`Provider ${providerName} not found`);
 
     const service = config.service;
-    
+
     switch (method) {
       case 'chat':
-        return service.chat(args[0] as ChatMessage[], args[1] as AIModelConfig);
+        return service.chat(args[0] as ChatMessage[], args[1] as AIModelConfig, args[2] as ToolDefinition[] | undefined);
       case 'streamChat':
-        return service.streamChat(args[0] as ChatMessage[], args[1] as AIModelConfig, args[2] as (chunk: string) => void);
+        return service.streamChat(
+          args[0] as ChatMessage[],
+          args[1] as AIModelConfig,
+          args[2] as (chunk: string) => void,
+          args[3] as ToolDefinition[] | undefined
+        );
       case 'getEmbedding':
         return service.getEmbedding(args[0] as string, args[1] as AIModelConfig);
       default:
@@ -246,7 +252,7 @@ export class HybridAIService implements IAIService {
     if (config.failureCount >= this.maxFailuresBeforeFallback) {
       config.enabled = false;
       console.warn(`Provider ${providerName} disabled after ${config.failureCount} failures`);
-      
+
       setTimeout(() => {
         config.enabled = true;
         config.failureCount = 0;
@@ -258,7 +264,7 @@ export class HybridAIService implements IAIService {
   async checkProviderHealth(providerName: string): Promise<boolean> {
     const config = this.providers.get(providerName);
     if (!config) return false;
-    
+
     try {
       return await config.service.isAvailable();
     } catch {

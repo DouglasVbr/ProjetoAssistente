@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GeminiService } from '@data/services/ai/gemini';
-import type { AIModelConfig, ChatMessage } from '@domain/entities';
+import type { AIModelConfig, ChatMessage, ToolDefinition } from '@domain/entities';
 
 const baseConfig: AIModelConfig = {
   provider: 'gemini',
@@ -11,6 +11,14 @@ const baseConfig: AIModelConfig = {
   presencePenalty: 0,
   frequencyPenalty: 0,
 };
+
+const sampleTools: ToolDefinition[] = [
+  {
+    name: 'get_current_datetime',
+    description: 'Retorna a data e hora atuais.',
+    parameters: { type: 'object', properties: {} },
+  },
+];
 
 function jsonResponse(body: unknown, ok = true, status = 200) {
   return {
@@ -91,5 +99,80 @@ describe('GeminiService', () => {
     expect(embedding).toEqual([0.1, 0.2, 0.3]);
     const [url] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('text-embedding-004:embedContent');
+  });
+
+  it('sends tools as functionDeclarations when provided', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ candidates: [{ content: { role: 'model', parts: [{ text: 'ok' }] } }] })
+    );
+
+    const service = new GeminiService('fake-key');
+    await service.chat([{ id: '1', role: 'user', content: 'que horas são?', timestamp: new Date() }], baseConfig, sampleTools);
+
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse((init as RequestInit).body as string);
+    expect(body.tools).toEqual([
+      { functionDeclarations: [{ name: 'get_current_datetime', description: 'Retorna a data e hora atuais.', parameters: { type: 'object', properties: {} } }] },
+    ]);
+  });
+
+  it('parses a functionCall part in the response into AIResponse.toolCalls', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        candidates: [
+          {
+            content: {
+              role: 'model',
+              parts: [{ functionCall: { name: 'get_current_datetime', args: {} } }],
+            },
+          },
+        ],
+      })
+    );
+
+    const service = new GeminiService('fake-key');
+    const response = await service.chat(
+      [{ id: '1', role: 'user', content: 'que horas são?', timestamp: new Date() }],
+      baseConfig,
+      sampleTools
+    );
+
+    expect(response.text).toBe('');
+    expect(response.toolCalls).toHaveLength(1);
+    expect(response.toolCalls?.[0]).toMatchObject({ name: 'get_current_datetime', arguments: {} });
+  });
+
+  it('maps an assistant tool-call message and a tool-result message into model/function turns', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ candidates: [{ content: { role: 'model', parts: [{ text: 'São 10h.' }] } }] }));
+
+    const service = new GeminiService('fake-key');
+    const messages: ChatMessage[] = [
+      { id: '1', role: 'user', content: 'que horas são?', timestamp: new Date() },
+      {
+        id: '2',
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        toolCalls: [{ id: 'call-1', name: 'get_current_datetime', arguments: {} }],
+      },
+      {
+        id: '3',
+        role: 'tool',
+        content: '10:00',
+        timestamp: new Date(),
+        toolCallId: 'call-1',
+        toolName: 'get_current_datetime',
+      },
+    ];
+
+    await service.chat(messages, baseConfig, sampleTools);
+
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse((init as RequestInit).body as string);
+    expect(body.contents).toEqual([
+      { role: 'user', parts: [{ text: 'que horas são?' }] },
+      { role: 'model', parts: [{ functionCall: { name: 'get_current_datetime', args: {} } }] },
+      { role: 'function', parts: [{ functionResponse: { name: 'get_current_datetime', response: { content: '10:00' } } }] },
+    ]);
   });
 });
