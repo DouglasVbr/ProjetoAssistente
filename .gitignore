@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Vite PWA dev-mode service worker output
+dev-dist
+
+# Test coverage
+coverage
