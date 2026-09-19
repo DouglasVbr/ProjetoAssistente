@@ -1,0 +1,389 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS Variables for Framework7 Integration */
+:root {
+  --f7-theme-color: #00B7FF;
+  --f7-bars-bg-color: #000000;
+  --f7-bars-text-color: #00B7FF;
+  --f7-bars-border-color: #00B7FF;
+  --f7-link-color: #00B7FF;
+  --f7-link-highlight-color: #0095CC;
+  --f7-button-bg-color: #00B7FF;
+  --f7-button-text-color: #FFFFFF;
+  --f7-input-bg-color: #000000;
+  --f7-input-text-color: #00B7FF;
+  --f7-input-border-color: #00B7FF;
+  --f7-list-border-color: #00B7FF;
+  --f7-list-item-bg-color: #000000;
+  --f7-list-item-text-color: #00B7FF;
+  --f7-popup-bg-color: #000000;
+  --f7-popup-border-color: #00B7FF;
+  --f7-toast-bg-color: #1a1a1a;
+  --f7-toast-text-color: #00B7FF;
+}
+
+/* Dark mode (default) */
+.dark {
+  --f7-bars-bg-color: #000000;
+  --f7-bars-text-color: #00B7FF;
+  --f7-bars-border-color: #00B7FF;
+  --f7-input-bg-color: #000000;
+  --f7-input-text-color: #00B7FF;
+  --f7-list-item-bg-color: #000000;
+  --f7-list-item-text-color: #00B7FF;
+  --f7-popup-bg-color: #000000;
+  --f7-toast-bg-color: #1a1a1a;
+}
+
+/* Light mode */
+.light {
+  --f7-bars-bg-color: #FFFFFF;
+  --f7-bars-text-color: #00B7FF;
+  --f7-bars-border-color: #E0E0E0;
+  --f7-input-bg-color: #FFFFFF;
+  --f7-input-text-color: #000000;
+  --f7-list-item-bg-color: #FFFFFF;
+  --f7-list-item-text-color: #000000;
+  --f7-popup-bg-color: #FFFFFF;
+  --f7-toast-bg-color: #F5F5F5;
+  --f7-toast-text-color: #000000;
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #000000;
+  color: #00B7FF;
+}
+
+/* Framework7 Overrides */
+.view {
+  height: 100%;
+  background: #000000;
+}
+
+.page {
+  background: #000000;
+  color: #00B7FF;
+}
+
+.navbar {
+  background: #000000 !important;
+  border-bottom: 1px solid #00B7FF !important;
+}
+
+.navbar-inner {
+  background: #000000 !important;
+}
+
+.toolbar {
+  background: #000000 !important;
+  border-top: 1px solid #00B7FF !important;
+}
+
+.toolbar-inner {
+  background: #000000 !important;
+}
+
+.tabbar-label {
+  font-size: 10px;
+  color: #00B7FF;
+}
+
+.tab-link {
+  color: #00B7FF;
+}
+
+.tab-link-active {
+  color: #00B7FF !important;
+}
+
+.list {
+  background: #000000;
+}
+
+.list .item-inner {
+  background: #000000;
+}
+
+.item-content {
+  background: #000000;
+}
+
+.item-title {
+  color: #00B7FF;
+}
+
+.item-subtitle {
+  color: #00B7FF;
+  opacity: 0.7;
+}
+
+.item-after {
+  color: #00B7FF;
+}
+
+.badge.color-blue {
+  background: #00B7FF;
+  color: #000000;
+}
+
+.input-custom {
+  background: #000000 !important;
+  color: #00B7FF !important;
+  border-color: #00B7FF !important;
+}
+
+.input-custom::placeholder {
+  color: #00B7FF !important;
+  opacity: 0.5;
+}
+
+.input-custom:focus {
+  border-color: #00B7FF !important;
+  box-shadow: 0 0 0 2px rgba(0, 183, 255, 0.2) !important;
+}
+
+.block {
+  background: #000000;
+}
+
+.block-title {
+  color: #00B7FF;
+}
+
+.btn-primary-outline {
+  background: #FFFFFF !important;
+  border: 2px solid #00B7FF !important;
+  color: #00B7FF !important;
+}
+
+.btn-primary-outline:active {
+  background: rgba(0, 183, 255, 0.1) !important;
+}
+
+.fab-button {
+  background: #1a1a1a !important;
+  border: 2px solid #00B7FF !important;
+  color: #00B7FF !important;
+}
+
+.fab-button.bg-primary {
+  background: #00B7FF !important;
+  border-color: #00B7FF !important;
+  color: #FFFFFF !important;
+}
+
+.fab-button.bg-primary:active {
+  background: #0095CC !important;
+}
+
+.fab-button.bg-warning {
+  background: #FFBB33 !important;
+  border-color: #FFBB33 !important;
+  color: #000000 !important;
+}
+
+.fab-button.bg-danger {
+  background: #FF4444 !important;
+  border-color: #FF4444 !important;
+  color: #FFFFFF !important;
+}
+
+/* Searchbar */
+.searchbar {
+  background: #000000;
+}
+
+.searchbar-input-wrap {
+  background: #1a1a1a;
+  border: 1px solid #00B7FF;
+}
+
+.searchbar-input {
+  color: #00B7FF;
+}
+
+.searchbar-input::placeholder {
+  color: #00B7FF;
+  opacity: 0.5;
+}
+
+/* Popup */
+.popup {
+  background: #000000;
+}
+
+.popup .navbar {
+  background: #000000 !important;
+}
+
+/* Toast */
+.toast {
+  background: #1a1a1a !important;
+  color: #00B7FF !important;
+  border: 1px solid #00B7FF !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00B7FF;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #33CCFF;
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 183, 255, 0.3);
+  color: #FFFFFF;
+}
+
+/* Focus visible */
+:focus-visible {
+  outline: 2px solid #00B7FF;
+  outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-pulse-soft {
+  animation: pulseSoft 2s infinite;
+}
+
+/* Custom utility classes */
+.txt-primary {
+  color: #00B7FF !important;
+}
+
+.txt-white {
+  color: #FFFFFF !important;
+}
+
+.txt-danger {
+  color: #FF4444 !important;
+}
+
+.txt-warning {
+  color: #FFBB33 !important;
+}
+
+.txt-success {
+  color: #00C851 !important;
+}
+
+.bg-black {
+  background-color: #000000 !important;
+}
+
+.bg-gray-900 {
+  background-color: #1a1a1a !important;
+}
+
+.bg-gray-800 {
+  background-color: #2a2a2a !important;
+}
+
+.border-primary\/20 {
+  border-color: rgba(0, 183, 255, 0.2) !important;
+}
+
+.border-primary\/30 {
+  border-color: rgba(0, 183, 255, 0.3) !important;
+}
+
+.border-primary\/50 {
+  border-color: rgba(0, 183, 255, 0.5) !important;
+}
+
+.rounded-full {
+  border-radius: 9999px !important;
+}
+
+.rounded-2xl {
+  border-radius: 1rem !important;
+}
+
+.rounded-tr-none {
+  border-top-right-radius: 0 !important;
+}
+
+.rounded-tl-none {
+  border-top-left-radius: 0 !important;
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  :root {
+    --f7-theme-color: #00FFFF;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
