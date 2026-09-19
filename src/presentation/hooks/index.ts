@@ -24,6 +24,50 @@ import { v4 as uuidv4 } from 'uuid';
 let sharedVoiceService: CapacitorVoiceService | WebVoiceService | null = null;
 
 /**
+ * Memory storage for the current platform. Mirrors the Capacitor.isNativePlatform()
+ * check already used by useMemories() so both stay in sync.
+ */
+function memoryStore() {
+  return Capacitor.isNativePlatform() ? sqliteService : indexedDBService;
+}
+
+const MEMORY_MATCH_THRESHOLD = 0.82;
+
+/**
+ * Look for a saved memory that answers `query`, using the embeddings that
+ * MemoryUseCases already generates when a memory is created/updated
+ * (see domain/usecases/memory.ts). Falls back to an exact text match if the
+ * embedding call fails (no provider configured, offline, etc.) so the
+ * feature degrades instead of breaking the chat.
+ *
+ * This was previously dead code: the chat flow never looked at saved
+ * memories at all, despite the semantic-search infrastructure existing.
+ */
+async function findMemoryMatch(query: string, config: AIModelConfig): Promise<Memory | null> {
+  const text = query.trim();
+  if (!text) return null;
+
+  const store = memoryStore();
+
+  try {
+    const embedding = await hybridAIService.getEmbedding(text, config);
+    const matches = await store.searchByEmbedding(embedding, 1, MEMORY_MATCH_THRESHOLD);
+    if (matches[0]) return matches[0];
+  } catch (error) {
+    console.warn('Memory embedding search failed, falling back to exact text match:', error);
+  }
+
+  const exact = await store.findByQuestionText(text);
+  return (
+    exact.find(
+      (m: Memory) =>
+        m.questionText.toLowerCase() === text.toLowerCase() ||
+        m.questionVoice.toLowerCase() === text.toLowerCase()
+    ) || null
+  );
+}
+
+/**
  * Initialize the application
  */
 export function useAppInit() {
@@ -118,8 +162,8 @@ export function useAppInit() {
   const handleVoiceCommand = useCallback(async (command: VoiceCommand) => {
     if (!command.text) return;
 
-    const { isListening, isSpeaking, settings, addMessage, memories } = useAppStore.getState();
-    
+    const { isListening, isSpeaking, settings, addMessage } = useAppStore.getState();
+
     if (settings.wakeWordEnabled && command.isWakeWord) {
       return;
     }
@@ -147,10 +191,9 @@ export function useAppInit() {
 
     try {
       let response = '';
-      const memoryMatch = memories.find(m => 
-        m.questionText.toLowerCase() === command.text.toLowerCase() ||
-        m.questionVoice.toLowerCase() === command.text.toLowerCase()
-      );
+      // Semantic memory lookup (embedding search with exact-text fallback) instead
+      // of the previous naive exact-match-only `memories.find(...)`.
+      const memoryMatch = await findMemoryMatch(command.text, aiConfig);
 
       if (memoryMatch) {
         response = memoryMatch.answerText;
@@ -260,13 +303,22 @@ export function useChat() {
     let fullResponse = '';
 
     try {
-      await hybridAIService.streamChat(
-        [...useAppStore.getState().messages, userMessage],
-        aiConfig,
-        (chunk) => {
-          fullResponse += chunk;
-        }
-      );
+      // Check saved memories first (embedding search with exact-text fallback)
+      // before hitting the AI provider — mirrors the voice-command flow in
+      // useAppInit().handleVoiceCommand so text and voice chat behave the same way.
+      const memoryMatch = await findMemoryMatch(content, aiConfig);
+
+      if (memoryMatch) {
+        fullResponse = memoryMatch.answerText;
+      } else {
+        await hybridAIService.streamChat(
+          [...useAppStore.getState().messages, userMessage],
+          aiConfig,
+          (chunk) => {
+            fullResponse += chunk;
+          }
+        );
+      }
 
       const assistantMessage: ChatMessage = {
         id: uuidv4(),
