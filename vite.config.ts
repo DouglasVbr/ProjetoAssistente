@@ -126,8 +126,23 @@ export default defineConfig({
     }),
   ],
   resolve: {
+    // Mirrors tsconfig.app.json's `compilerOptions.paths` — tsc reads that file
+    // directly, but Vite's own bundler (dev server and `vite build`) does not,
+    // so every alias used in source has to be duplicated here too. Without this,
+    // `npx tsc -b --noEmit` passes (it only checks types) while `npm run dev` /
+    // `npm run build` fail at runtime with "Failed to resolve import" for any
+    // file using `@domain/…`, `@core/…`, etc. (this bit indexeddb.ts,
+    // sqlite.ts, hybrid.ts, gemini.ts and others).
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@domain': path.resolve(__dirname, './src/domain'),
+      '@core': path.resolve(__dirname, './src/core'),
+      '@data': path.resolve(__dirname, './src/data'),
+      '@presentation': path.resolve(__dirname, './src/presentation'),
+      '@hooks': path.resolve(__dirname, './src/presentation/hooks/index.ts'),
+      '@stores': path.resolve(__dirname, './src/presentation/stores/app.ts'),
+      '@pages': path.resolve(__dirname, './src/presentation/pages'),
+      '@components': path.resolve(__dirname, './src/presentation/components'),
     },
   },
   server: {
