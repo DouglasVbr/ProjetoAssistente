@@ -43,9 +43,9 @@ export class SupabaseSyncService {
   private baseUrl: string;
   private anonKey: string;
 
-  constructor() {
-    this.baseUrl = env.VITE_SUPABASE_URL;
-    this.anonKey = env.VITE_SUPABASE_ANON_KEY;
+  constructor(baseUrl?: string, anonKey?: string) {
+    this.baseUrl = baseUrl ?? env.VITE_SUPABASE_URL;
+    this.anonKey = anonKey ?? env.VITE_SUPABASE_ANON_KEY;
   }
 
   /**
