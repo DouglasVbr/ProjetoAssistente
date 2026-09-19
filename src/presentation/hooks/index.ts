@@ -8,6 +8,7 @@ import { hybridAIService } from '../../data/services/ai/hybrid';
 import { CapacitorVoiceService, WebVoiceService } from '../../data/services/voice/capacitor-voice';
 import { sqliteService } from '../../data/storage/sqlite';
 import { indexedDBService } from '../../data/storage/indexeddb';
+import { supabaseSyncService } from '../../data/services/sync/supabase-sync';
 import { Events } from '../../domain/events';
 import { Capacitor } from '@capacitor/core';
 import { Network } from '@capacitor/network';
@@ -596,21 +597,39 @@ export function useSync() {
 
   const sync = useCallback(async () => {
     if (syncing || !settings.syncEnabled) return;
-    
+
     setSyncing(true);
     setSyncStatus({ isSyncing: true, error: null });
-    
+
     try {
-      await new Promise(r => setTimeout(r, 1000));
-      
-      setSyncStatus({ 
-        lastSync: new Date(), 
-        pendingChanges: 0, 
+      if (!supabaseSyncService.isConfigured()) {
+        // No backend configured — the app stays fully offline-first, so this
+        // isn't an error, just nothing to push right now.
+        setSyncStatus({
+          lastSync: new Date(),
+          pendingChanges: 0,
+          isSyncing: false,
+          error: 'Supabase não configurado (defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY para sincronizar)',
+        });
+        return;
+      }
+
+      const store = memoryStore();
+      const unsynced = await store.getUnsynced();
+
+      if (unsynced.length > 0) {
+        await supabaseSyncService.pushMemories(unsynced);
+        await store.markSynced(unsynced.map((m: Memory) => m.id));
+      }
+
+      setSyncStatus({
+        lastSync: new Date(),
+        pendingChanges: 0,
         isSyncing: false,
         error: null,
       });
     } catch (error) {
-      setSyncStatus({ 
+      setSyncStatus({
         isSyncing: false,
         error: error instanceof Error ? error.message : 'Sync failed',
       });

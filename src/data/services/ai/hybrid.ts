@@ -5,11 +5,12 @@
 import type { IAIService, AIModelConfig, ChatMessage, AIResponse, TokenUsage } from '@domain/repositories';
 import { OpenAIService } from './openai';
 import { OllamaService } from './ollama';
+import { GeminiService } from './gemini';
 import { AIServiceError } from '@core/errors';
 import { env } from '@core/config';
 import { sleep } from '@core/utils';
 
-export type AIProviderType = 'openai' | 'azure' | 'ollama' | 'auto';
+export type AIProviderType = 'openai' | 'azure' | 'ollama' | 'gemini' | 'auto';
 
 interface ProviderConfig {
   type: AIProviderType;
@@ -54,6 +55,16 @@ export class HybridAIService implements IAIService {
       this.providers.set('azure', {
         type: 'azure',
         service: new OpenAIService(env.VITE_AZURE_OPENAI_API_KEY, env.VITE_AZURE_OPENAI_ENDPOINT),
+        priority: 1,
+        enabled: true,
+        failureCount: 0,
+      });
+    }
+
+    if (env.VITE_GEMINI_API_KEY) {
+      this.providers.set('gemini', {
+        type: 'gemini',
+        service: new GeminiService(),
         priority: 1,
         enabled: true,
         failureCount: 0,
