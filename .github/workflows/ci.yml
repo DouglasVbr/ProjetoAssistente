@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # Fresh install on Linux, unlike the dev sandbox this was built in -
+      # npm resolves the correct native bindings for this runner's platform
+      # (see the vite.config.ts comment about the rolldown-vite native binary
+      # mismatch that blocks running `vite build`/`vitest` outside a real
+      # matching environment).
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npx tsc -b --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
