@@ -20,7 +20,12 @@
     <link rel="apple-touch-startup-image" href="/splash/ios-splash-1125-2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
     <link rel="apple-touch-startup-image" href="/splash/ios-splash-1242-2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" />
     
-    <!-- Framework7 Icons -->
+    <!-- Framework7's own icon font -- required for framework7-react's <Icon f7="..."> prop
+         (used throughout the app for navbar/toolbar/list icons); this renders as
+         literal text like "chat_bubble_fill" instead of a glyph when this font
+         is missing, which is what was happening before this was added. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7-icons@5.0.5/css/framework7-icons.css" />
+    <!-- Material Design Icons -- used where the app references material icon names -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" />
   </head>
   <body>
